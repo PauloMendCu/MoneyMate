@@ -12,6 +12,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MoneyMate"
         tools:targetApi="31">
+        <service
+            android:name="services.MyIntentService"
+            android:exported="false"></service>
+        <service
+            android:name="services.IFinanceService"
+            android:enabled="true"
+            android:exported="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
