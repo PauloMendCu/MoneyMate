@@ -17,23 +17,30 @@ import entities.Cuenta;
 public class CuentaAdapter extends RecyclerView.Adapter<CuentaAdapter.ViewHolder> {
 
     private List<Cuenta> cuentas;
+    private OnItemClickListener listener;
 
-    public CuentaAdapter(List<Cuenta> cuentas) {
-        this.cuentas = cuentas;
+    public interface OnItemClickListener {
+        void onItemClick(Cuenta cuenta);
     }
 
-    @NonNull
+    public CuentaAdapter(List<Cuenta> cuentas, OnItemClickListener listener) {
+        this.cuentas = cuentas;
+        this.listener = listener;
+    }
+
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_cuenta, parent, false);
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_cuenta, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(ViewHolder holder, int position) {
         Cuenta cuenta = cuentas.get(position);
-        holder.tvNombreCuenta.setText(cuenta.getNombre());
-        holder.tvSaldo.setText(String.valueOf(cuenta.getSaldo()));
+        holder.nombre.setText(cuenta.getNombre());
+        holder.saldo.setText(String.valueOf(cuenta.getSaldo()));
+        holder.itemView.setOnClickListener(v -> listener.onItemClick(cuenta));
     }
 
     @Override
@@ -42,12 +49,12 @@ public class CuentaAdapter extends RecyclerView.Adapter<CuentaAdapter.ViewHolder
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNombreCuenta, tvSaldo;
+        TextView nombre, saldo;
 
-        public ViewHolder(@NonNull View itemView) {
+        public ViewHolder(View itemView) {
             super(itemView);
-            tvNombreCuenta = itemView.findViewById(R.id.tvNombreCuenta);
-            tvSaldo = itemView.findViewById(R.id.tvSaldo);
+            nombre = itemView.findViewById(R.id.tvNombreCuenta);
+            saldo = itemView.findViewById(R.id.tvSaldo);
         }
     }
 }

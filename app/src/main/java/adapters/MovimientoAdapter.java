@@ -10,48 +10,102 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymate.R;
 
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Locale;
+
+import entities.Cuenta;
+import entities.Movimiento;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
-import entities.Movimiento;
+public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.MovimientoViewHolder> {
 
-public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.ViewHolder> {
+    // Clase interna para el ViewHolder
+    static class MovimientoViewHolder extends RecyclerView.ViewHolder {
+        TextView descripcion;
+        TextView nombreCuenta;
+        TextView fecha;
+        TextView monto;
 
+        public MovimientoViewHolder(@NonNull View itemView) {
+            super(itemView);
+            descripcion = itemView.findViewById(R.id.texto_descripcion);
+            nombreCuenta = itemView.findViewById(R.id.texto_nombre_cuenta);
+            fecha = itemView.findViewById(R.id.texto_fecha);
+            monto = itemView.findViewById(R.id.texto_monto);
+        }
+    }
+
+    // Lista de movimientos a mostrar
     private List<Movimiento> movimientos;
 
-    public MovimientoAdapter(List<Movimiento> movimientos) {
+    // Lista de cuentas para buscar nombres
+    private List<Cuenta> cuentas;
+
+
+    public MovimientoAdapter(List<Movimiento> movimientos, List<Cuenta> cuentas) {
         this.movimientos = movimientos;
+        this.cuentas = cuentas;
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_movimiento, parent, false);
-        return new ViewHolder(view);
+    public MovimientoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        View view = inflater.inflate(R.layout.item_movimiento, parent, false);
+        return new MovimientoViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull MovimientoViewHolder holder, int position) {
         Movimiento movimiento = movimientos.get(position);
-        holder.tvDescripcion.setText(movimiento.getDescripcion());
-        holder.tvMonto.setText(String.valueOf(movimiento.getMonto()));
-        holder.tvFecha.setText(movimiento.getFecha().toString());
-        holder.tvTipo.setText(movimiento.getTipo().toString());
+
+        // Asignar valores a los elementos del ViewHolder
+        holder.descripcion.setText(movimiento.getDescripcion());
+        holder.fecha.setText(movimiento.getFecha());
+
+        // Buscar el nombre de la cuenta basado en el campo "cuentaId"
+        String nombreCuenta = "Desconocido"; // Valor por defecto si no se encuentra
+        for (Cuenta cuenta : cuentas) {
+            if (cuenta.getId() == movimiento.getId()) {
+                nombreCuenta = cuenta.getNombre();
+                break;
+            }
+        }
+
+        holder.nombreCuenta.setText(nombreCuenta);
+
+        // Ajustar el monto y su color según el tipo de movimiento
+        String montoTexto = "";
+        int montoColor = 0;
+
+        switch (movimiento.getTipo()) {
+            case "payment":
+                montoTexto = "+" + movimiento.getMonto();
+                montoColor = 0xFF00FF00; // Verde
+                break;
+            case "withdrawal":
+                montoTexto = "-" + movimiento.getMonto();
+                montoColor = 0xFFFF0000; // Rojo
+                break;
+            case "invoice":
+                montoTexto = "±" + movimiento.getMonto();
+                montoColor = 0xFF0000FF; // Azul
+                break;
+        }
+
+        holder.monto.setText(montoTexto);
+        holder.monto.setTextColor(montoColor);
     }
 
     @Override
     public int getItemCount() {
         return movimientos.size();
-    }
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDescripcion, tvMonto, tvFecha, tvTipo;
-
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvDescripcion = itemView.findViewById(R.id.tvDescripcion);
-            tvMonto = itemView.findViewById(R.id.tvMonto);
-            tvFecha = itemView.findViewById(R.id.tvFecha);
-            tvTipo = itemView.findViewById(R.id.tvTipo);
-        }
     }
 }

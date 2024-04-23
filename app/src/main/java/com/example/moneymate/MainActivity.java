@@ -1,6 +1,9 @@
 package com.example.moneymate;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -26,57 +29,28 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import services.IFinanceService;
 
 public class MainActivity extends AppCompatActivity {
-
-    private RecyclerView rvMovimientos;
-    private MovimientoAdapter movimientoAdapter;
-    private List<Movimiento> movimientos = new ArrayList<>();
-
-    private IFinanceService service;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        rvMovimientos = findViewById(R.id.rvMovimientos);
-
-        setupRecyclerView();
-        setupRetrofit();
-        loadData();
-    }
-
-    private void setupRecyclerView() {
-        movimientoAdapter = new MovimientoAdapter(movimientos);
-
-        rvMovimientos.setLayoutManager(new LinearLayoutManager(this));
-        rvMovimientos.setAdapter(movimientoAdapter);
-    }
-
-    private void setupRetrofit() {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://your-api-base-url.com")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        service = retrofit.create(IFinanceService.class);
-    }
-
-    private void loadData() {
-        service.getTodosLosMovimientos().enqueue(new Callback<List<Movimiento>>() {
+        // Botón para ver movimientos
+        Button btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
-                if (response.isSuccessful()) {
-                    movimientos.clear();
-                    movimientos.addAll(response.body());
-                    movimientoAdapter.notifyDataSetChanged();
-                } else {
-                    Toast.makeText(MainActivity.this, "Error al cargar movimientos", Toast.LENGTH_SHORT).show();
-                }
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, MovimientosActivity.class);
+                startActivity(intent);
             }
+        });
 
+        // Botón para ver cuentas
+        Button btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onFailure(Call<List<Movimiento>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, CuentasActivity.class);
+                startActivity(intent);
             }
         });
     }
