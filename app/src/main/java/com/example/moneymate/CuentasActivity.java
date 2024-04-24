@@ -40,7 +40,7 @@ public class CuentasActivity extends AppCompatActivity {
         cuentas = new ArrayList<>();
         adapter = new CuentaAdapter(cuentas, cuenta -> {
             Intent intent = new Intent(this, MovimientosPorCuentaActivity.class);
-            intent.putExtra("cuenta_id", cuenta.getId());
+            intent.putExtra("cuenta_id", cuenta.getId()); // se pasa el id de la cuenta seleccionada
             startActivity(intent);
         });
         recyclerView.setAdapter(adapter);
@@ -56,7 +56,7 @@ public class CuentasActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     cuentas.clear();
                     cuentas.addAll(response.body());
-                    adapter.notifyDataSetChanged();
+                    adapter.notifyDataSetChanged(); // Actualizar el adaptador para mostrar las cuentas
                 }
             }
 

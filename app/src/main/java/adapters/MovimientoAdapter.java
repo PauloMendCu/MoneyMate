@@ -42,10 +42,8 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
         }
     }
 
-    // Lista de movimientos a mostrar
     private List<Movimiento> movimientos;
 
-    // Lista de cuentas para buscar nombres
     private List<Cuenta> cuentas;
 
 
@@ -73,7 +71,7 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
         // Buscar el nombre de la cuenta basado en el campo "cuentaId"
         String nombreCuenta = "Desconocido"; // Valor por defecto si no se encuentra
         for (Cuenta cuenta : cuentas) {
-            if (cuenta.getId() == movimiento.getId()) {
+            if (cuenta.getId() == movimiento.getCuentaId()) {
                 nombreCuenta = cuenta.getNombre();
                 break;
             }
@@ -86,15 +84,15 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
         int montoColor = 0;
 
         switch (movimiento.getTipo()) {
-            case "payment":
+            case "Ingreso":
                 montoTexto = "+" + movimiento.getMonto();
                 montoColor = 0xFF00FF00; // Verde
                 break;
-            case "withdrawal":
+            case "Gasto":
                 montoTexto = "-" + movimiento.getMonto();
                 montoColor = 0xFFFF0000; // Rojo
                 break;
-            case "invoice":
+            case "Transferencia":
                 montoTexto = "±" + movimiento.getMonto();
                 montoColor = 0xFF0000FF; // Azul
                 break;
