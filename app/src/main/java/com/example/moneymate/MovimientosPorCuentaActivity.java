@@ -1,6 +1,7 @@
 package com.example.moneymate;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -26,7 +27,7 @@ import services.IFinanceService;
 public class MovimientosPorCuentaActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private MovimientoAdapter adapter;
-    private List<Movimiento> movimientos;
+    private List<Movimiento> movimientosFiltrados;
     private List<Cuenta> cuentas;
 
     @Override
@@ -37,51 +38,57 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        movimientos = new ArrayList<>();
+        movimientosFiltrados = new ArrayList<>();
         cuentas = new ArrayList<>();
-        fetchCuentas();
-
-        adapter = new MovimientoAdapter(movimientos, cuentas);
+        adapter = new MovimientoAdapter(movimientosFiltrados, cuentas);
         recyclerView.setAdapter(adapter);
 
         int cuentaId = getIntent().getIntExtra("cuenta_id", -1);
-        fetchMovimientosPorCuenta(cuentaId);
+        fetchMovimientosPorCuenta(cuentaId);  // Obtener los movimientos para la cuenta específica
     }
 
-    private void fetchCuentas() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-            @Override
-            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                if (response.isSuccessful()) {
-                    cuentas.clear();
-                    cuentas.addAll(response.body());
-                    adapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
     private void fetchMovimientosPorCuenta(int cuentaId) {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getMovimientosPorCuenta(cuentaId).enqueue(new Callback<List<Movimiento>>() {
+        api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
             @Override
             public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
                 if (response.isSuccessful()) {
-                    movimientos.clear();
-                    movimientos.addAll(response.body());
+                    List<Movimiento> movimientos = response.body();
+                    List<Movimiento> movimientosFiltradosTemp = new ArrayList<>(); // Lista temporal
+                    for (Movimiento movimiento : movimientos) {
+                        if (movimiento.getCuentaId() == cuentaId) {
+                            movimientosFiltradosTemp.add(movimiento);
+                        }
+                    }
+                    movimientosFiltrados.clear();
+                    movimientosFiltrados.addAll(movimientosFiltradosTemp); // Asignar la lista filtrada a movimientosFiltrados
                     adapter.notifyDataSetChanged();
+
+                    fetchCuentas();
                 }
             }
 
             @Override
             public void onFailure(Call<List<Movimiento>> call, Throwable t) {
                 Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private void fetchCuentas() {
+        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
+            @Override
+            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
+                if (response.isSuccessful()) {
+                    List<Cuenta> cuentas = response.body();
+                    adapter = new MovimientoAdapter(movimientosFiltrados, cuentas);
+                    recyclerView.setAdapter(adapter);
+                }
+            }
 
+            @Override
+            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
+                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
             }
         });
     }

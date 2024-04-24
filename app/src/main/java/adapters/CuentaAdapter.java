@@ -1,5 +1,6 @@
 package adapters;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,6 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.moneymate.MovimientosPorCuentaActivity;
 import com.example.moneymate.R;
 
 import java.util.List;
@@ -40,7 +42,12 @@ public class CuentaAdapter extends RecyclerView.Adapter<CuentaAdapter.ViewHolder
         Cuenta cuenta = cuentas.get(position);
         holder.nombre.setText(cuenta.getNombre());
         holder.saldo.setText(String.valueOf(cuenta.getSaldo()));
-        holder.itemView.setOnClickListener(v -> listener.onItemClick(cuenta));
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(holder.itemView.getContext(), MovimientosPorCuentaActivity.class);
+            intent.putExtra("cuenta_id", cuenta.getId());  // Pasar el ID de la cuenta
+            holder.itemView.getContext().startActivity(intent);
+        });
     }
 
     @Override

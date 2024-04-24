@@ -6,13 +6,15 @@ public class Movimiento {
     private double monto;
     private String fecha;
     private String tipo;
+    private int cuentaId;
 
-    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo) {
+    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId) {
         this.id = id;
         this.descripcion = descripcion;
         this.monto = monto;
         this.fecha = fecha;
         this.tipo = tipo;
+        this.cuentaId = cuentaId;
     }
 
     public int getId() {
@@ -53,5 +55,13 @@ public class Movimiento {
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
+    }
+
+    public int getCuentaId() {
+        return cuentaId;
+    }
+
+    public void setCuentaId(int cuentaId) {
+        this.cuentaId = cuentaId;
     }
 }
