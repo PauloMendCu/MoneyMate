@@ -85,15 +85,15 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
 
         switch (movimiento.getTipo()) {
             case "Ingreso":
-                montoTexto = "+" + movimiento.getMonto();
+                montoTexto = "+" + movimiento.getMonto() + "(Ingreso)";
                 montoColor = 0xFF00FF00; // Verde
                 break;
             case "Gasto":
-                montoTexto = "-" + movimiento.getMonto();
+                montoTexto = "-" + movimiento.getMonto()+ "(Gasto)";
                 montoColor = 0xFFFF0000; // Rojo
                 break;
             case "Transferencia":
-                montoTexto = "±" + movimiento.getMonto();
+                montoTexto = "±" + movimiento.getMonto()+ "(Transferencia)";
                 montoColor = 0xFF0000FF; // Azul
                 break;
         }
