@@ -41,7 +41,9 @@ public class CuentaAdapter extends RecyclerView.Adapter<CuentaAdapter.ViewHolder
     public void onBindViewHolder(ViewHolder holder, int position) {
         Cuenta cuenta = cuentas.get(position);
         holder.nombre.setText(cuenta.getNombre());
-        holder.saldo.setText(String.valueOf(cuenta.getSaldo()));
+        String saldoString = String.valueOf(cuenta.getSaldo());
+        String saldoFinal = "S/. "+ saldoString;
+        holder.saldo.setText(saldoFinal);
 
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(holder.itemView.getContext(), MovimientosPorCuentaActivity.class);
