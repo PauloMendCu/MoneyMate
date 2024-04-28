@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import adapters.MovimientoAdapter;
+import entities.Categoria;
 import entities.Cuenta;
 import entities.Movimiento;
 import entities.RetrofitClient;
@@ -29,6 +30,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
     private MovimientoAdapter adapter;
     private List<Movimiento> movimientosFiltrados;
     private List<Cuenta> cuentas;
+    private List<Categoria> categorias;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +42,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
         movimientosFiltrados = new ArrayList<>();
         cuentas = new ArrayList<>();
-        adapter = new MovimientoAdapter(movimientosFiltrados, cuentas);
+        adapter = new MovimientoAdapter(movimientosFiltrados, cuentas, categorias);
         recyclerView.setAdapter(adapter);
 
         int cuentaId = getIntent().getIntExtra("cuenta_id", -1);
@@ -49,21 +51,14 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
     private void fetchMovimientosPorCuenta(int cuentaId) {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
+        String url = "/api/v1/movimientos?cuentaId=" + cuentaId;
+        api.getMovimientosPorURL(url).enqueue(new Callback<List<Movimiento>>() {
             @Override
             public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
                 if (response.isSuccessful()) {
-                    List<Movimiento> movimientos = response.body();
-                    List<Movimiento> movimientosFiltradosTemp = new ArrayList<>(); // Lista temporal
-                    for (Movimiento movimiento : movimientos) {
-                        if (movimiento.getCuentaId() == cuentaId) {
-                            movimientosFiltradosTemp.add(movimiento);
-                        }
-                    }
                     movimientosFiltrados.clear();
-                    movimientosFiltrados.addAll(movimientosFiltradosTemp); // Asignar la lista filtrada a movimientosFiltrados
+                    movimientosFiltrados.addAll(response.body());
                     adapter.notifyDataSetChanged();
-
                     fetchCuentas();
                 }
             }
@@ -81,7 +76,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
                 if (response.isSuccessful()) {
                     List<Cuenta> cuentas = response.body();
-                    adapter = new MovimientoAdapter(movimientosFiltrados, cuentas);
+                    adapter = new MovimientoAdapter(movimientosFiltrados, cuentas, categorias);
                     recyclerView.setAdapter(adapter);
                 }
             }

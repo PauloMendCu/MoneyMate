@@ -7,14 +7,16 @@ public class Movimiento {
     private String fecha;
     private String tipo;
     private int cuentaId;
+    private int categoriaId;
 
-    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId) {
+    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId) {
         this.id = id;
         this.descripcion = descripcion;
         this.monto = monto;
         this.fecha = fecha;
         this.tipo = tipo;
         this.cuentaId = cuentaId;
+        this.categoriaId = categoriaId;
     }
 
     public int getId() {
@@ -63,5 +65,13 @@ public class Movimiento {
 
     public void setCuentaId(int cuentaId) {
         this.cuentaId = cuentaId;
+    }
+
+    public int getCategoriaId() {
+        return categoriaId;
+    }
+
+    public void setCategoriaId(int categoriaId) {
+        this.categoriaId = categoriaId;
     }
 }
