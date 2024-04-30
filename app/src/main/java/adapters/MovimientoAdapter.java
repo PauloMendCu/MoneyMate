@@ -1,5 +1,6 @@
 package adapters;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,6 +50,7 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     private List<Movimiento> movimientos;
     private List<Cuenta> cuentas;
     private List<Categoria> categorias;
+
 
     public MovimientoAdapter(List<Movimiento> movimientos, List<Cuenta> cuentas, List<Categoria> categorias) {
         this.movimientos = movimientos;
@@ -120,6 +122,8 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
 
     public void updateMovimientos(List<Movimiento> movimientosNuevos) {
         movimientos = new ArrayList<>(movimientosNuevos);
+        Log.d("MovimientoAdapter", "Nuevos movimientos: " + movimientos.size());
+
         notifyDataSetChanged();
     }
 

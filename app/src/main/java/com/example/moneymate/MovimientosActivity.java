@@ -45,22 +45,23 @@ public class MovimientosActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movimientos);
 
-        recyclerView = findViewById(R.id.recycler_view);
+        recyclerView = findViewById(R.id.recycler_view_movimientos);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         movimientosCompletos = new ArrayList<>();
+        movimientosCompletos.clear();
         cuentas = new ArrayList<>();
         categorias = new ArrayList<>();
         spinnerCategoria = findViewById(R.id.spinner_categorias);
 
+        fetchCuentas();
+        fetchCategorias();
+
         adapter = new MovimientoAdapter(movimientosCompletos, cuentas, categorias);
         recyclerView.setAdapter(adapter);
 
-        configurarSpinnerCategoria();
-
-        fetchCategorias();
-        fetchCuentas();
         fetchMovimientos();
+        configurarSpinnerCategoria();
 
         filtrarMovimientos();
     }
@@ -162,4 +163,5 @@ public class MovimientosActivity extends AppCompatActivity {
                 .filter(movimiento -> categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada)
                 .collect(Collectors.toList()));
     }
+
 }
