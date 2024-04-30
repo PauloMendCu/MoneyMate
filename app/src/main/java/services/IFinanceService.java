@@ -18,7 +18,8 @@ public interface IFinanceService {
     @GET("/api/v1/cuentas")
     Call<List<Cuenta>> getCuentas();
 
+    @GET("/api/v1/movimientos")
+    Call<List<Movimiento>> getMovimientosPorCuenta(@Query("cuentaId") int cuentaId);
 
-    @GET
-    Call<List<Movimiento>> getMovimientosPorURL(@Url String url);
+
 }

@@ -2,6 +2,7 @@ package com.example.moneymate;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -34,13 +35,14 @@ public class CuentasActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cuentas);
 
-        recyclerView = findViewById(R.id.recycler_view);
+        recyclerView = findViewById(R.id.recycler_view_cuentas);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         cuentas = new ArrayList<>();
         adapter = new CuentaAdapter(cuentas, cuenta -> {
             Intent intent = new Intent(this, MovimientosPorCuentaActivity.class);
             intent.putExtra("cuenta_id", cuenta.getId()); // se pasa el id de la cuenta seleccionada
+            Log.e("MAIN_APP", String.valueOf(cuenta.getId()));
             startActivity(intent);
         });
         recyclerView.setAdapter(adapter);
