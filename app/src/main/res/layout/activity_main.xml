@@ -57,9 +57,17 @@
                 android:backgroundTint="@color/botonSecundario"
                 android:textAllCaps="true"
                 android:layout_marginStart="16dp" />
+          
+            <!-- Botón para ver movimientos -->
+            <Button
+                android:id="@+id/btn_nuevo_movimiento"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/botonSecundario"
+                android:textAllCaps="true"
+                android:layout_marginStart="16dp"
+                android:text="REGISTRAR MOVIMIENTO" />
 
         </LinearLayout>
 
     </LinearLayout>
-
-</LinearLayout>
