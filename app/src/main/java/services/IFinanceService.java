@@ -6,7 +6,9 @@ import entities.Categoria;
 import entities.Cuenta;
 import entities.Movimiento;
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.Url;
@@ -21,5 +23,7 @@ public interface IFinanceService {
     @GET("/api/v1/movimientos")
     Call<List<Movimiento>> getMovimientosPorCuenta(@Query("cuentaId") int cuentaId);
 
+    @POST("/api/v1/movimientos")
+    Call<Movimiento> agregarMovimiento(@Body Movimiento movimiento);
 
 }

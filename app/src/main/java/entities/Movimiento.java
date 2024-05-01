@@ -19,6 +19,9 @@ public class Movimiento {
         this.categoriaId = categoriaId;
     }
 
+    public Movimiento() {
+    }
+
     public int getId() {
         return id;
     }
