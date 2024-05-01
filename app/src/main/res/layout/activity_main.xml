@@ -4,37 +4,70 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="center">
+    android:background="@color/colorFondo"
+    android:gravity="center_vertical">
 
-    <!-- Botón para ver movimientos -->
-    <Button
-        android:id="@+id/btn_ver_movimientos"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ver Movimientos"/>
-
-    <!-- Espacio entre botones -->
-    <View
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="16dp"/>
-
-    <!-- Botón para ver cuentas -->
-    <Button
-        android:id="@+id/btn_ver_cuentas"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Ver Cuentas"/>
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="16dp"/>
+        <!-- Título de la aplicación -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="MoneyMate"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:gravity="center_horizontal"
+            android:layout_marginBottom="16dp" />
 
-    <!-- Botón para agregar nuevo movimiento -->
-    <Button
-        android:id="@+id/btn_nuevo_movimiento"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Registrar Movimiento" />
+        <!-- Imagen del logotipo -->
+        <ImageView
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:src="@drawable/logo"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="32dp" />
 
-</LinearLayout>
+        <!-- Layout para centrar los botones horizontalmente -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_horizontal">
+
+            <!-- Botón para ver cuentas -->
+            <Button
+                android:id="@+id/btn_ver_cuentas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="VER CUENTAS"
+                android:backgroundTint="@color/botonSecundario"
+                android:textAllCaps="true" />
+
+            <!-- Botón para ver movimientos -->
+            <Button
+                android:id="@+id/btn_ver_movimientos"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="VER MOVIMIENTOS"
+                android:backgroundTint="@color/botonSecundario"
+                android:textAllCaps="true"
+                android:layout_marginStart="16dp" />
+          
+            <!-- Botón para ver movimientos -->
+            <Button
+                android:id="@+id/btn_nuevo_movimiento"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/botonSecundario"
+                android:textAllCaps="true"
+                android:layout_marginStart="16dp"
+                android:text="REGISTRAR MOVIMIENTO" />
+
+        </LinearLayout>
+
+    </LinearLayout>
