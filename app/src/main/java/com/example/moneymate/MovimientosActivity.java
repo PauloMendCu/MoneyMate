@@ -1,10 +1,12 @@
 package com.example.moneymate;
 
 import android.os.Bundle;
+import android.util.Pair;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -16,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,6 +57,10 @@ public class MovimientosActivity extends AppCompatActivity {
         cuentas = new ArrayList<>();
         categorias = new ArrayList<>();
         spinnerCategoria = findViewById(R.id.spinner_categorias);
+        TextView tvMesAno = findViewById(R.id.tv_mes_ano);
+        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
+        String mesAnoTexto = String.format("%02d/%04d", mesYAno.first, mesYAno.second);
+        tvMesAno.setText(mesAnoTexto);
 
         fetchCuentas();
         fetchCategorias();
@@ -65,6 +72,13 @@ public class MovimientosActivity extends AppCompatActivity {
         configurarSpinnerCategoria();
 
         filtrarMovimientos();
+    }
+
+    private Pair<Integer, Integer> obtenerMesYAnoActuales() {
+        Calendar calendar = Calendar.getInstance();
+        int mesActual = calendar.get(Calendar.MONTH) + 1; // Los meses van de 0 a 11
+        int anoActual = calendar.get(Calendar.YEAR);
+        return new Pair<>(mesActual, anoActual);
     }
 
     private void configurarSpinnerCategoria() {
@@ -161,8 +175,17 @@ public class MovimientosActivity extends AppCompatActivity {
     }
 
     private void filtrarMovimientos() {
+        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
+        int mesActual = mesYAno.first;
+        int anoActual = mesYAno.second;
+
         adapter.updateMovimientos(movimientosCompletos.stream()
-                .filter(movimiento -> categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada)
+                .filter(movimiento -> {
+                    String[] partesFecha = movimiento.getFecha().split("-");
+                    int mes = Integer.parseInt(partesFecha[1]);
+                    int ano = Integer.parseInt(partesFecha[0]);
+                    return (mes == mesActual && ano == anoActual) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
+                })
                 .collect(Collectors.toList()));
     }
 
