@@ -15,6 +15,11 @@
         android:textSize="24sp"
         android:textStyle="bold"/>
 
+    <Spinner
+        android:id="@+id/spinner_categorias"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
     <!-- RecyclerView para mostrar la lista de movimientos -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_movimientos_cuenta"

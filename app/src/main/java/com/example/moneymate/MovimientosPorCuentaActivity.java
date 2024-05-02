@@ -2,6 +2,10 @@ package com.example.moneymate;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -13,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +38,9 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
     private List<Movimiento> movimientosFiltrados;
     private List<Cuenta> cuentas;
     private List<Categoria> categorias;
+    private Spinner spinnerCategoria;
+    private int categoriaSeleccionada = -1; // -1 para mostrar todos los movimientos
+    private List<Categoria> categoriasFiltradas;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +53,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
         movimientosFiltrados = new ArrayList<>();
         cuentas = new ArrayList<>();
         categorias = new ArrayList<>();
+        spinnerCategoria = findViewById(R.id.spinner_categorias);
 
         fetchCuentas();
         fetchCategorias();
@@ -60,7 +69,39 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
         Log.e("MAIN_APP2", String.valueOf(cuentaId));
         fetchMovimientosPorCuenta(cuentaId);
 
+        configurarSpinnerCategoria();
+        filtrarMovimientosPorCategoria();
 
+    }
+
+    private void configurarSpinnerCategoria() {
+        // Configurar el adaptador y el listener del spinner
+        ArrayAdapter<String> adapterSpinner = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
+        adapterSpinner.add("Todas las categorías");
+        spinnerCategoria.setAdapter(adapterSpinner);
+        spinnerCategoria.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == 0) {
+                    categoriaSeleccionada = -1; // Mostrar todos los movimientos
+                } else {
+                    categoriaSeleccionada = categorias.get(position - 1).getId();
+                }
+
+                filtrarMovimientosPorCategoria();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // No hacer nada
+            }
+        });
+    }
+
+    private void filtrarMovimientosPorCategoria() {
+        adapter.updateMovimientos(movimientosFiltrados.stream()
+                .filter(movimiento -> categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada)
+                .collect(Collectors.toList()));
     }
 
     private void fetchMovimientosPorCuenta(int cuentaId) {
@@ -76,6 +117,8 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                             movimientosFiltrados.add(movimiento);
                         }
                     }
+                    Collections.sort(movimientosFiltrados, Movimiento.ordenarPorFechaDescendente);
+                    filtrarMovimientosPorCategoria();
                     adapter.notifyDataSetChanged();
                 }
             }
@@ -92,8 +135,20 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
                 if (response.isSuccessful()) {
-                    categorias = response.body();
-                    fetchCuentas();
+                    categorias.clear();
+
+                    ArrayAdapter<String> adapterSpinner = (ArrayAdapter<String>) spinnerCategoria.getAdapter();
+                    adapterSpinner.clear();
+                    adapterSpinner.add("Todas las categorías");
+
+                    categorias.addAll(response.body());
+
+                    for (Categoria categoria : categorias) {
+                        adapterSpinner.add(categoria.getNombre());
+                    }
+                    adapterSpinner.notifyDataSetChanged();
+
+                    filtrarMovimientosPorCategoria();
                 }
             }
 
