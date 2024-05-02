@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Money Mate</string>
+    <string name="mes_anterior">Mes Anterior</string>
+    <string name="mes_siguiente">Mes Siguiente</string>
 </resources>

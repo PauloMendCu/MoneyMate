@@ -2,10 +2,13 @@ package com.example.moneymate;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -17,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,6 +46,9 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
     private int categoriaSeleccionada = -1; // -1 para mostrar todos los movimientos
     private List<Categoria> categoriasFiltradas;
 
+    private int mesSeleccionado;
+    private int anoSeleccionado;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +61,36 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
         cuentas = new ArrayList<>();
         categorias = new ArrayList<>();
         spinnerCategoria = findViewById(R.id.spinner_categorias);
+        TextView tvMesAno = findViewById(R.id.tv_mes_ano);
+        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
+        String mesAnoTexto = String.format("%02d/%04d", mesYAno.first, mesYAno.second);
+        tvMesAno.setText(mesAnoTexto);
+
+        mesSeleccionado = mesYAno.first;
+        anoSeleccionado = mesYAno.second;
+
+        ImageButton btnMesAnterior = findViewById(R.id.btn_mes_anterior);
+        ImageButton btnMesSiguiente = findViewById(R.id.btn_mes_siguiente);
+
+        btnMesAnterior.setOnClickListener(v -> {
+            // Retroceder al mes anterior
+            mesSeleccionado--;
+            if (mesSeleccionado < 1) {
+                mesSeleccionado = 12;
+                anoSeleccionado--;
+            }
+            actualizarMovimientos();
+        });
+
+        btnMesSiguiente.setOnClickListener(v -> {
+            // Avanzar al mes siguiente
+            mesSeleccionado++;
+            if (mesSeleccionado > 12) {
+                mesSeleccionado = 1;
+                anoSeleccionado++;
+            }
+            actualizarMovimientos();
+        });
 
         fetchCuentas();
         fetchCategorias();
@@ -89,6 +126,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                 }
 
                 filtrarMovimientosPorCategoria();
+                actualizarMovimientos();
             }
 
             @Override
@@ -97,11 +135,35 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             }
         });
     }
+    private void actualizarMovimientos() {
+        adapter.updateMovimientos(movimientosFiltrados.stream()
+                .filter(movimiento -> {
+                    String[] partesFecha = movimiento.getFecha().split("-");
+                    int mes = Integer.parseInt(partesFecha[1]);
+                    int ano = Integer.parseInt(partesFecha[0]);
+                    return (mes == mesSeleccionado && ano == anoSeleccionado) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
+                })
+                .collect(Collectors.toList()));
+        TextView tvMesAno = findViewById(R.id.tv_mes_ano);
+        String mesAnoTexto = String.format("%02d/%04d", mesSeleccionado, anoSeleccionado);
+        tvMesAno.setText(mesAnoTexto);
+    }
 
     private void filtrarMovimientosPorCategoria() {
+        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
+        int mesActual = mesYAno.first;
+        int anoActual = mesYAno.second;
+
         adapter.updateMovimientos(movimientosFiltrados.stream()
-                .filter(movimiento -> categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada)
+                .filter(movimiento -> {
+                    String[] partesFecha = movimiento.getFecha().split("-");
+                    int mes = Integer.parseInt(partesFecha[1]);
+                    int ano = Integer.parseInt(partesFecha[0]);
+                    return (mes == mesActual && ano == anoActual) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
+                })
                 .collect(Collectors.toList()));
+
+
     }
 
     private void fetchMovimientosPorCuenta(int cuentaId) {
@@ -119,7 +181,6 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                     }
                     Collections.sort(movimientosFiltrados, Movimiento.ordenarPorFechaDescendente);
                     filtrarMovimientosPorCategoria();
-                    adapter.notifyDataSetChanged();
                 }
             }
 
@@ -149,6 +210,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                     adapterSpinner.notifyDataSetChanged();
 
                     filtrarMovimientosPorCategoria();
+                    actualizarMovimientos();
                 }
             }
 
@@ -203,6 +265,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     categorias = response.body();
                 }
+                actualizarMovimientos();
             }
 
             @Override
@@ -210,6 +273,13 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                 Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private Pair<Integer, Integer> obtenerMesYAnoActuales() {
+        Calendar calendar = Calendar.getInstance();
+        int mesActual = calendar.get(Calendar.MONTH) + 1; // Los meses van de 0 a 11
+        int anoActual = calendar.get(Calendar.YEAR);
+        return new Pair<>(mesActual, anoActual);
     }
 
 }
