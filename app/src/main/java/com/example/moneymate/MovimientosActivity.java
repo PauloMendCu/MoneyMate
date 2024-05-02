@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -147,6 +148,7 @@ public class MovimientosActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     movimientosCompletos.clear();
                     movimientosCompletos.addAll(response.body());
+                    Collections.sort(movimientosCompletos, Movimiento.ordenarPorFechaDescendente);
                     filtrarMovimientos();
                 }
             }

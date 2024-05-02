@@ -1,5 +1,7 @@
 package entities;
 
+import java.util.Comparator;
+
 public class Movimiento {
     private int id;
     private String descripcion;
@@ -77,4 +79,13 @@ public class Movimiento {
     public void setCategoriaId(int categoriaId) {
         this.categoriaId = categoriaId;
     }
+
+
+    public static Comparator<Movimiento> ordenarPorFechaDescendente = new Comparator<Movimiento>() {
+        @Override
+        public int compare(Movimiento m1, Movimiento m2) {
+            return m2.getFecha().compareTo(m1.getFecha());
+        }
+    };
+
 }
