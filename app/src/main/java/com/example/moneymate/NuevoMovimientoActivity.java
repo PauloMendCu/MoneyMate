@@ -1,19 +1,17 @@
 package com.example.moneymate;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,22 +31,27 @@ import services.IFinanceService;
 
 public class NuevoMovimientoActivity extends AppCompatActivity {
 
-    private Spinner spinnerCategoria, spinnerCuenta;
+    private LinearLayout layoutCategorias;
+    private Spinner spinnerCuenta;
     private EditText etDescripcion, etMonto;
     private RadioGroup rgTipo;
     private RadioButton rbIngreso, rbGasto, rbTransferencia;
     private Button btnGuardar;
+    private Button btnCategoriaSeleccionada;
+
+
 
     private List<Categoria> categorias;
     private List<Cuenta> cuentas;
     private String fecha;
+    private int categoriaSeleccionadaId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nuevo_movimiento);
 
-        spinnerCategoria = findViewById(R.id.spinner_categoria);
+        layoutCategorias = findViewById(R.id.layout_categorias);
         spinnerCuenta = findViewById(R.id.spinner_cuenta);
         etDescripcion = findViewById(R.id.et_descripcion);
         etMonto = findViewById(R.id.et_monto);
@@ -77,7 +80,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
                 if (response.isSuccessful()) {
                     categorias = response.body();
-                    configurarSpinnerCategoria();
+                    configurarBotonesCategorias();
                 }
             }
 
@@ -88,15 +91,29 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         });
     }
 
-    private void configurarSpinnerCategoria() {
-        List<String> categoriasNombres = new ArrayList<>();
-        categoriasNombres.add("Seleccionar categoría"); // Agregar opción vacía
+    private void configurarBotonesCategorias() {
+        layoutCategorias.removeAllViews();
+
         for (Categoria categoria : categorias) {
-            categoriasNombres.add(categoria.getNombre());
+            Button btnCategoria = new Button(this);
+            btnCategoria.setText(categoria.getNombre());
+            btnCategoria.setBackgroundResource(android.R.drawable.btn_default); // Fondo por defecto
+
+            btnCategoria.setOnClickListener(v -> {
+                categoriaSeleccionadaId = categoria.getId();
+
+                // Restablecer el fondo del botón previamente seleccionado
+                if (btnCategoriaSeleccionada != null) {
+                    btnCategoriaSeleccionada.setBackgroundResource(android.R.drawable.btn_default);
+                }
+
+                // Cambiar el fondo del botón seleccionado
+                btnCategoriaSeleccionada = (Button) v;
+                btnCategoriaSeleccionada.setBackgroundResource(R.drawable.selector_button_bg);
+            });
+
+            layoutCategorias.addView(btnCategoria);
         }
-        ArrayAdapter<String> adapterCategoria = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoriasNombres);
-        adapterCategoria.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCategoria.setAdapter(adapterCategoria);
     }
 
     private void fetchCuentas() {
@@ -131,7 +148,6 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private void guardarMovimiento() {
         String descripcion = etDescripcion.getText().toString().trim();
         String montoString = etMonto.getText().toString().trim();
-        int categoriaSeleccionada = spinnerCategoria.getSelectedItemPosition();
         int cuentaSeleccionada = spinnerCuenta.getSelectedItemPosition();
         String tipo = obtenerTipoMovimiento();
 
@@ -154,7 +170,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             return;
         }
 
-        if (categoriaSeleccionada == 0) {
+        if (categoriaSeleccionadaId == -1) {
             Toast.makeText(this, "Debes seleccionar una categoría", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -169,8 +185,6 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             return;
         }
 
-        // Obtener los IDs de la categoría y cuenta seleccionadas
-        int categoriaId = categorias.get(categoriaSeleccionada - 1).getId(); // Restar 1 para compensar la opción vacía
         int cuentaId = cuentas.get(cuentaSeleccionada - 1).getId(); // Restar 1 para compensar la opción vacía
 
         // Si todas las validaciones pasan, crear el objeto Movimiento y guardarlo
@@ -178,10 +192,9 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         nuevoMovimiento.setDescripcion(descripcion);
         nuevoMovimiento.setMonto(monto);
         nuevoMovimiento.setTipo(tipo);
-        nuevoMovimiento.setCategoriaId(categoriaId);
+        nuevoMovimiento.setCategoriaId(categoriaSeleccionadaId);
         nuevoMovimiento.setCuentaId(cuentaId);
         nuevoMovimiento.setFecha(fecha);
-
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
         api.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
             @Override

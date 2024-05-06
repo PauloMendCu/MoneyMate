@@ -3,17 +3,27 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
-    <!-- Título de la actividad -->
-    <TextView
-        android:id="@+id/titulo_cuentas"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Cuentas"
-        android:textSize="24sp"
-        android:textStyle="bold"/>
+        android:padding="16dp"
+        android:background="@color/colorFondo">
+
+        <!-- Título de la actividad -->
+        <TextView
+            android:id="@+id/titulo_cuentas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cuentas"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+
 
     <!-- RecyclerView para mostrar la lista de cuentas -->
     <androidx.recyclerview.widget.RecyclerView
@@ -21,8 +31,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/colorGris"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="10dp"
         />
 
 </LinearLayout>
