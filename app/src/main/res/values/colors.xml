@@ -4,6 +4,8 @@
     <color name="white">#FFFFFFFF</color>
     <color name="colorFondo">#1b9d94</color>
     <color name="colorGris">#f0f0f0</color>
-    <color name="botonSecundario">#093944</color>
+    <color name="botonSecundario">#005e61</color>
+    <color name="botonSecundario2">#14766f</color>
     <color name="colorPrimaryDark">#000000</color>
+    <color name="FondoSecundario">#09423f</color>
 </resources>
