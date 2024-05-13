@@ -10,8 +10,9 @@ public class Movimiento {
     private String tipo;
     private int cuentaId;
     private int categoriaId;
+    private int cuentaDestId;
 
-    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId) {
+    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId, int cuentaDestId) {
         this.id = id;
         this.descripcion = descripcion;
         this.monto = monto;
@@ -19,6 +20,7 @@ public class Movimiento {
         this.tipo = tipo;
         this.cuentaId = cuentaId;
         this.categoriaId = categoriaId;
+        this.cuentaDestId = cuentaDestId;
     }
 
     public Movimiento() {
@@ -80,6 +82,13 @@ public class Movimiento {
         this.categoriaId = categoriaId;
     }
 
+    public int getCuentaDestId() {
+        return cuentaDestId;
+    }
+
+    public void setCuentaDestId(int cuentaDestId) {
+        this.cuentaDestId = cuentaDestId;
+    }
 
     public static Comparator<Movimiento> ordenarPorFechaDescendente = new Comparator<Movimiento>() {
         @Override
