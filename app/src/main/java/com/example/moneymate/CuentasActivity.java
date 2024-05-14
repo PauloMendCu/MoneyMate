@@ -3,6 +3,9 @@ package com.example.moneymate;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -46,6 +49,36 @@ public class CuentasActivity extends AppCompatActivity {
             startActivity(intent);
         });
         recyclerView.setAdapter(adapter);
+
+        // Botón para ver movimientos
+        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(CuentasActivity.this, MovimientosActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Botón para ver cuentas
+        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(CuentasActivity.this, CuentasActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Botón para registrar nuevo movimiento
+        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
+        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CuentasActivity.this, NuevoMovimientoActivity.class);
+                startActivity(intent);
+            }
+        });
 
         fetchCuentas();
     }

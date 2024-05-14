@@ -1,10 +1,12 @@
 package com.example.moneymate;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -66,6 +68,36 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         fecha = sdf.format(new Date());
+
+        // Botón para ver movimientos
+        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(NuevoMovimientoActivity.this, MovimientosActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Botón para ver cuentas
+        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Botón para registrar nuevo movimiento
+        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
+        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(NuevoMovimientoActivity.this, NuevoMovimientoActivity.class);
+                startActivity(intent);
+            }
+        });
 
         fetchCategorias();
         fetchCuentas();

@@ -84,4 +84,41 @@
         android:layout_marginTop="16dp"
         />
 
+    <LinearLayout
+        android:id="@+id/layout_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/white"
+        android:padding="8dp"
+        android:layout_alignParentBottom="true">
+
+        <ImageButton
+            android:id="@+id/btn_ver_cuentas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_cuentas"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Cuentas" />
+
+        <ImageButton
+            android:id="@+id/btn_ver_movimientos"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_movimientos"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Movimientos" />
+
+        <ImageButton
+            android:id="@+id/btn_nuevo_movimiento"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_agregar"
+            android:background="@android:color/transparent"
+            android:contentDescription="Nuevo Movimiento" />
+
+    </LinearLayout>
 </LinearLayout>
