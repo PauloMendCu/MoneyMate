@@ -168,14 +168,14 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
     private void fetchMovimientosPorCuenta(int cuentaId) {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getMovimientosPorCuenta(cuentaId).enqueue(new Callback<List<Movimiento>>() {
+        api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
             @Override
             public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
                 if (response.isSuccessful()) {
                     movimientosFiltrados.clear();
                     List<Movimiento> movimientosRecibidos = response.body();
                     for (Movimiento movimiento : movimientosRecibidos) {
-                        if (movimiento.getCuentaId() == cuentaId) {
+                        if (movimiento.getCuentaId() == cuentaId || (movimiento.getTipo().equals("Transferencia") && movimiento.getCuentaDestId() == cuentaId)) {
                             movimientosFiltrados.add(movimiento);
                         }
                     }

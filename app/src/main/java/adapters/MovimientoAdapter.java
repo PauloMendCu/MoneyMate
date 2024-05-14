@@ -33,6 +33,7 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     static class MovimientoViewHolder extends RecyclerView.ViewHolder {
         TextView descripcion;
         TextView nombreCuenta;
+        TextView cuentaDestino;
         TextView fecha;
         TextView monto;
         TextView categoria;
@@ -41,6 +42,7 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
             super(itemView);
             descripcion = itemView.findViewById(R.id.texto_descripcion);
             nombreCuenta = itemView.findViewById(R.id.texto_nombre_cuenta);
+            cuentaDestino = itemView.findViewById(R.id.texto_cuenta_destino);
             fecha = itemView.findViewById(R.id.texto_fecha);
             monto = itemView.findViewById(R.id.texto_monto);
             categoria = itemView.findViewById(R.id.texto_categoria);
@@ -71,23 +73,31 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     public void onBindViewHolder(@NonNull MovimientoViewHolder holder, int position) {
         Movimiento movimiento = movimientos.get(position);
 
-        // Asignar valores a los elementos del ViewHolder
         holder.descripcion.setText(movimiento.getDescripcion());
         holder.fecha.setText(movimiento.getFecha());
 
-        // Buscar el nombre de la cuenta basado en el campo "cuentaId"
-        String nombreCuenta = "Desconocido"; // Valor por defecto si no se encuentra
+        String nombreCuenta = "Desconocido";
+        String nombreCuentaDestino = "Desconocido";
+
         for (Cuenta cuenta : cuentas) {
             if (cuenta.getId() == movimiento.getCuentaId()) {
                 nombreCuenta = cuenta.getNombre();
-                break;
+            }
+            if (cuenta.getId() == movimiento.getCuentaDestId()) {
+                nombreCuentaDestino = cuenta.getNombre();
             }
         }
 
-        holder.nombreCuenta.setText(nombreCuenta);
+        if (movimiento.getTipo().equals("Transferencia")) {
+            holder.nombreCuenta.setText("Cuenta origen: " + nombreCuenta);
+            holder.cuentaDestino.setVisibility(View.VISIBLE);
+            holder.cuentaDestino.setText("Cuenta destino: " + nombreCuentaDestino);
+        } else {
+            holder.nombreCuenta.setText("Cuenta: " + nombreCuenta);
+            holder.cuentaDestino.setVisibility(View.GONE);
+        }
 
-        // Buscar el nombre de la categoría basado en el campo "categoriaId"
-        String nombreCategoria = "Desconocido"; // Valor por defecto si no se encuentra
+        String nombreCategoria = "Desconocido";
         for (Categoria categoria : categorias) {
             if (categoria.getId() == movimiento.getCategoriaId()) {
                 nombreCategoria = categoria.getNombre();
@@ -97,22 +107,21 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
 
         holder.categoria.setText(nombreCategoria);
 
-        // Ajustar el monto y su color según el tipo de movimiento
         String montoTexto = "";
         int montoColor = 0;
 
         switch (movimiento.getTipo()) {
             case "Ingreso":
                 montoTexto = "+" + movimiento.getMonto() + " (Ingreso)";
-                montoColor = 0xFF00FF00; // Verde
+                montoColor = 0xFF00FF00;
                 break;
             case "Gasto":
-                montoTexto = "-" + movimiento.getMonto()+ " (Gasto)";
-                montoColor = 0xFFFF0000; // Rojo
+                montoTexto = "-" + movimiento.getMonto() + " (Gasto)";
+                montoColor = 0xFFFF0000;
                 break;
             case "Transferencia":
-                montoTexto = "±" + movimiento.getMonto()+ " (Transferencia)";
-                montoColor = 0xFF0000FF; // Azul
+                montoTexto = "±" + movimiento.getMonto() + " (Transferencia)";
+                montoColor = 0xFF0000FF;
                 break;
         }
 
@@ -131,4 +140,7 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     public int getItemCount() {
         return movimientos.size();
     }
+
+
+
 }
