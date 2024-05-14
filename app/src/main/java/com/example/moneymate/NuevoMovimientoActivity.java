@@ -311,6 +311,11 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
 
         int cuentaId = cuentas.get(cuentaOrigenSeleccionada - 1).getId(); // Restar 1 para compensar la opción vacía
+        Cuenta cuentaOrigen = getCuentaById(cuentaId);
+        if ((tipo.equals("Gasto") || tipo.equals("Transferencia")) && monto > cuentaOrigen.getSaldo()) {
+            Toast.makeText(this, "El monto supera el saldo de la cuenta", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         // Si todas las validaciones pasan, crear el objeto Movimiento y guardarlo
         Movimiento nuevoMovimiento = new Movimiento();
@@ -350,6 +355,15 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                 Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private Cuenta getCuentaById(int cuentaId) {
+        for (Cuenta cuenta : cuentas) {
+            if (cuenta.getId() == cuentaId) {
+                return cuenta;
+            }
+        }
+        return null;
     }
 
     private String obtenerTipoMovimiento() {
