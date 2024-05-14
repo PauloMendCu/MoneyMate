@@ -1,5 +1,7 @@
 package com.example.moneymate;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -17,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -40,7 +43,11 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private RadioButton rbIngreso, rbGasto, rbTransferencia;
     private Button btnGuardar;
     private Button btnCategoriaSeleccionada;
+    private EditText etFecha;
+    private Button btnSeleccionarFecha;
+    private String fechaActual;
 
+    private Spinner spinnerCuentaDestino;
 
 
     private List<Categoria> categorias;
@@ -62,6 +69,11 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         rbGasto = findViewById(R.id.rb_gasto);
         rbTransferencia = findViewById(R.id.rb_transferencia);
         btnGuardar = findViewById(R.id.btn_guardar);
+        etFecha = findViewById(R.id.et_fecha);
+        btnSeleccionarFecha = findViewById(R.id.btn_seleccionar_fecha);
+        spinnerCuentaDestino = findViewById(R.id.spinner_cuenta_destino);
+
+        btnSeleccionarFecha.setOnClickListener(v -> mostrarSelectorFecha());
 
         categorias = new ArrayList<>();
         cuentas = new ArrayList<>();
@@ -99,10 +111,71 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             }
         });
 
+        SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        fechaActual = sdf2.format(new Date());
+        etFecha.setText(fechaActual);
+
         fetchCategorias();
         fetchCuentas();
 
+        rgTipo.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                List<String> cuentasNombres = new ArrayList<>();
+
+                if (checkedId == R.id.rb_transferencia) {
+
+
+                    cuentasNombres.add("Seleccionar cuenta origen"); // Agregar opción vacía
+
+                    spinnerCuenta.setPrompt("Seleccionar cuenta origen");
+                    spinnerCuentaDestino.setVisibility(View.VISIBLE);
+                    configurarSpinnerCuentaDestino();
+                } else {
+                    cuentasNombres.add("Seleccionar cuenta"); // Agregar opción vacía
+                    spinnerCuenta.setPrompt("Seleccionar cuenta");
+                    spinnerCuentaDestino.setVisibility(View.GONE);
+                }
+
+                for (Cuenta cuenta : cuentas) {
+                    cuentasNombres.add(cuenta.getNombre());
+                }
+                ArrayAdapter<String> adapterCuenta = new ArrayAdapter<>(NuevoMovimientoActivity.this, android.R.layout.simple_spinner_item, cuentasNombres);
+                adapterCuenta.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinnerCuenta.setAdapter(adapterCuenta);
+            }
+        });
+
         btnGuardar.setOnClickListener(v -> guardarMovimiento());
+    }
+
+    private void mostrarSelectorFecha() {
+        if (etFecha.getText().toString().equals(fechaActual)) {
+            Calendar calendar = Calendar.getInstance();
+            int year = calendar.get(Calendar.YEAR);
+            int month = calendar.get(Calendar.MONTH);
+            int day = calendar.get(Calendar.DAY_OF_MONTH);
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            int minute = calendar.get(Calendar.MINUTE);
+
+            DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, selectedYear, selectedMonth, selectedDay) -> {
+                Calendar selectedCalendar = Calendar.getInstance();
+                selectedCalendar.set(selectedYear, selectedMonth, selectedDay);
+
+                TimePickerDialog timePickerDialog = new TimePickerDialog(this, (view1, selectedHour, selectedMinute) -> {
+                    selectedCalendar.set(Calendar.HOUR_OF_DAY, selectedHour);
+                    selectedCalendar.set(Calendar.MINUTE, selectedMinute);
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                    String fechaSeleccionada = sdf.format(selectedCalendar.getTime());
+                    etFecha.setText(fechaSeleccionada);
+                }, hour, minute, true);
+
+                timePickerDialog.show();
+            }, year, month, day);
+
+            datePickerDialog.show();
+        }
     }
 
     private void fetchCategorias() {
@@ -177,11 +250,30 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         spinnerCuenta.setAdapter(adapterCuenta);
     }
 
+    private void configurarSpinnerCuentaDestino() {
+        List<String> cuentasNombres = new ArrayList<>();
+        cuentasNombres.add("Seleccionar cuenta destino"); // Agregar opción vacía
+        for (Cuenta cuenta : cuentas) {
+            cuentasNombres.add(cuenta.getNombre());
+        }
+        ArrayAdapter<String> adapterCuentaDestino = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentasNombres);
+        adapterCuentaDestino.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCuentaDestino.setAdapter(adapterCuentaDestino);
+    }
+
     private void guardarMovimiento() {
         String descripcion = etDescripcion.getText().toString().trim();
         String montoString = etMonto.getText().toString().trim();
-        int cuentaSeleccionada = spinnerCuenta.getSelectedItemPosition();
+        int cuentaOrigenSeleccionada = spinnerCuenta.getSelectedItemPosition();
+        int cuentaDestinoSeleccionada = spinnerCuentaDestino.getSelectedItemPosition();
         String tipo = obtenerTipoMovimiento();
+
+        String fechaMovimiento;
+        if (etFecha.getText().toString().equals(fechaActual)) {
+            fechaMovimiento = fechaActual;
+        } else {
+            fechaMovimiento = etFecha.getText().toString().trim();
+        }
 
         // Validaciones
         if (descripcion.isEmpty()) {
@@ -207,7 +299,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             return;
         }
 
-        if (cuentaSeleccionada == 0) {
+        if (cuentaOrigenSeleccionada == 0) {
             Toast.makeText(this, "Debes seleccionar una cuenta", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -217,7 +309,8 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             return;
         }
 
-        int cuentaId = cuentas.get(cuentaSeleccionada - 1).getId(); // Restar 1 para compensar la opción vacía
+
+        int cuentaId = cuentas.get(cuentaOrigenSeleccionada - 1).getId(); // Restar 1 para compensar la opción vacía
 
         // Si todas las validaciones pasan, crear el objeto Movimiento y guardarlo
         Movimiento nuevoMovimiento = new Movimiento();
@@ -226,13 +319,26 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         nuevoMovimiento.setTipo(tipo);
         nuevoMovimiento.setCategoriaId(categoriaSeleccionadaId);
         nuevoMovimiento.setCuentaId(cuentaId);
-        nuevoMovimiento.setFecha(fecha);
+        nuevoMovimiento.setFecha(fechaMovimiento);
+
+        if (tipo.equals("Transferencia")) {
+            if (cuentaDestinoSeleccionada == 0) {
+                Toast.makeText(this, "Debes seleccionar una cuenta destino", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            int cuentaDestinoId = cuentas.get(cuentaDestinoSeleccionada - 1).getId();
+            nuevoMovimiento.setCuentaDestId(cuentaDestinoId);
+        } else {
+            nuevoMovimiento.setCuentaDestId(0); // Valor por defecto para tipos diferentes a "Transferencia"
+        }
+
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
         api.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
             @Override
             public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(NuevoMovimientoActivity.this, "Movimiento guardado correctamente", Toast.LENGTH_SHORT).show();
+                    actualizarSaldoCuenta(nuevoMovimiento); // Llamar al método para actualizar el saldo
                     finish(); // Cierra la actividad actual
                 } else {
                     Toast.makeText(NuevoMovimientoActivity.this, "Error al guardar el movimiento", Toast.LENGTH_SHORT).show();
@@ -256,5 +362,92 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         } else {
             return null;
         }
+    }
+
+    private void actualizarSaldoCuenta(Movimiento movimiento) {
+        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+        int cuentaId = movimiento.getCuentaId();
+        double montoMovimiento = movimiento.getMonto();
+        String tipoMovimiento = movimiento.getTipo();
+
+        api.getCuentaById(cuentaId).enqueue(new Callback<Cuenta>() {
+            @Override
+            public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                if (response.isSuccessful()) {
+                    Cuenta cuenta = response.body();
+                    double nuevoSaldo;
+
+                    if (tipoMovimiento.equals("Ingreso")) {
+                        nuevoSaldo = cuenta.getSaldo() + montoMovimiento;
+                    } else if (tipoMovimiento.equals("Gasto")) {
+                        nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
+                    } else { // Transferencia
+                        int cuentaDestinoId = movimiento.getCuentaDestId();
+                        nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
+                        actualizarSaldoCuentaDestino(cuentaDestinoId, montoMovimiento);
+                    }
+
+                    cuenta.setSaldo(nuevoSaldo);
+                    api.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
+                        @Override
+                        public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                            if (response.isSuccessful()) {
+                                // Saldo actualizado correctamente
+                            } else {
+                                Toast.makeText(NuevoMovimientoActivity.this, "Error al actualizar el saldo", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Cuenta> call, Throwable t) {
+                            Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    Toast.makeText(NuevoMovimientoActivity.this, "Error al obtener la cuenta", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Cuenta> call, Throwable t) {
+                Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void actualizarSaldoCuentaDestino(int cuentaDestinoId, double monto) {
+        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+        api.getCuentaById(cuentaDestinoId).enqueue(new Callback<Cuenta>() {
+            @Override
+            public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                if (response.isSuccessful()) {
+                    Cuenta cuenta = response.body();
+                    double nuevoSaldo = cuenta.getSaldo() + monto;
+                    cuenta.setSaldo(nuevoSaldo);
+                    api.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
+                        @Override
+                        public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                            if (response.isSuccessful()) {
+                                // Saldo de la cuenta destino actualizado correctamente
+                            } else {
+                                Toast.makeText(NuevoMovimientoActivity.this, "Error al actualizar el saldo de la cuenta destino", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Cuenta> call, Throwable t) {
+                            Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    Toast.makeText(NuevoMovimientoActivity.this, "Error al obtener la cuenta destino", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Cuenta> call, Throwable t) {
+                Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

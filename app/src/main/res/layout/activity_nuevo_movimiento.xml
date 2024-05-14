@@ -38,6 +38,20 @@
     android:paddingRight="20dp">
 
 
+    <EditText
+        android:id="@+id/et_fecha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Fecha y hora"
+        android:focusable="false" />
+
+    <Button
+        android:id="@+id/btn_seleccionar_fecha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/botonSecundario"
+        android:text="Seleccionar fecha y hora" />
+
 
     <EditText
         android:id="@+id/et_monto"
@@ -92,6 +106,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp" />
+
+    <Spinner
+        android:id="@+id/spinner_cuenta_destino"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/btn_guardar"

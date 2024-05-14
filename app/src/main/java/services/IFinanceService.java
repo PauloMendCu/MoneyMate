@@ -9,6 +9,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.Url;
@@ -25,5 +26,11 @@ public interface IFinanceService {
 
     @POST("/api/v1/movimientos")
     Call<Movimiento> agregarMovimiento(@Body Movimiento movimiento);
+
+    @GET("/api/v1/cuentas/{id}")
+    Call<Cuenta> getCuentaById(@Path("id") int cuentaId);
+
+    @PUT("/api/v1/cuentas/{id}")
+    Call<Cuenta> actualizarCuenta(@Path("id") int cuentaId, @Body Cuenta cuenta);
 
 }
