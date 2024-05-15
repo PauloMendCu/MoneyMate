@@ -2,4 +2,8 @@
     <string name="app_name">Money Mate</string>
     <string name="mes_anterior">Mes Anterior</string>
     <string name="mes_siguiente">Mes Siguiente</string>
+    <string name="title_activity_registrar_tarjeta_credito">RegistrarTarjetaCreditoActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
 </resources>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/et_nombre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nombre de la tarjeta" />
+
+    <EditText
+        android:id="@+id/et_linea_credito"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Línea de crédito"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/et_saldo_consumido"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Saldo Consumido"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/et_saldo_disponible"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Saldo Disponible"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/et_prox_pago"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Proximo Pago"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/et_pago_minimo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Pago Minimo"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/et_fecha_facturacion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Fecha de Facturacion"
+        android:focusable="false" />
+
+    <Button
+        android:id="@+id/btn_fecha_facturacion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/botonSecundario"
+        android:text="Seleccionar fecha de Facturacion" />
+
+    <EditText
+        android:id="@+id/et_fecha_vencimiento"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Fecha de Vencimiento"
+        android:focusable="false" />
+
+    <Button
+        android:id="@+id/btn_seleccionar_fecha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/botonSecundario"
+        android:text="Seleccionar fecha de Vencimiento" />
+
+    <Button
+        android:id="@+id/btn_registrar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Registrar" />
+
+</LinearLayout>

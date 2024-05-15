@@ -15,6 +15,10 @@
         android:theme="@style/Theme.MoneyMate"
         tools:targetApi="31">
         <activity
+            android:name=".RegistrarTarjetaCreditoActivity"
+            android:exported="false"
+            android:label="@string/title_activity_registrar_tarjeta_credito" />
+        <activity
             android:name=".TarjetasCreditoActivity"
             android:exported="false" />
         <activity
