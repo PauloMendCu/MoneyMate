@@ -64,26 +64,26 @@
             android:textAllCaps="true" />
 
         <Button
-            android:id="@+id/btn_ver_tarjetas_credito"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
-            android:backgroundTint="@color/botonSecundario"
-            android:text="VER TARJETAS CREDITO"
-            android:textAllCaps="true" />
-
-        <Button
             android:id="@+id/btn_ver_movimientos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
-            android:backgroundTint="@color/botonSecundario2"
             android:text="VER MOVIMIENTOS"
-            android:textAllCaps="true" />
+            android:backgroundTint="@color/botonSecundario"
+            android:textAllCaps="true"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"/>
+
+        <Button
+            android:id="@+id/btn_ver_tarjetas_credito"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="VER TARJETAS CRÉDITO"
+            android:backgroundTint="@color/botonSecundario2"
+            android:textAllCaps="true"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"/>
 
         <Button
             android:id="@+id/btn_nuevo_movimiento"
