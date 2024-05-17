@@ -1,21 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Tarjetas de Crédito"
-        android:textSize="24sp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_view_tarjetas_credito"
+    android:layout_height="match_parent">
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-</LinearLayout>
+            <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:background="@color/colorFondo">
+
+             <TextView
+                android:id="@+id/titulo_trj"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tarjetas de Crédito"
+                android:textSize="24sp"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:textStyle="bold"/>
+
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_registrar_tarjeta_credito"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_plano"
+            android:backgroundTint="@color/botonSecundario"
+            android:text="Agregar tarjeta"
+            android:textAllCaps="true" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_tarjetas_credito"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/layout_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/white"
+        android:padding="8dp"
+        android:layout_alignParentBottom="true">
+
+
+
+        <ImageButton
+            android:id="@+id/btn_ver_cuentas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_cuentas"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Cuentas" />
+
+        <ImageButton
+            android:id="@+id/btn_ver_movimientos"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_movimientos"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Movimientos" />
+
+        <ImageButton
+            android:id="@+id/btnTarjetas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_tarjeta"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Movimientos" />
+
+        <ImageButton
+            android:id="@+id/btn_nuevo_movimiento"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_agregar"
+            android:background="@android:color/transparent"
+            android:contentDescription="Nuevo Movimiento" />
+
+
+    </LinearLayout>
+
+</RelativeLayout>

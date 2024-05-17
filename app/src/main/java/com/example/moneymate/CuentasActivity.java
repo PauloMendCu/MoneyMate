@@ -73,13 +73,30 @@ public class CuentasActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
+        // Bton para crear nueva cuenta
+        Button btnAgregarCuenta = findViewById(R.id.btnAgregarCuenta);
+        btnAgregarCuenta.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CuentasActivity.this, NuevaCuentaActivity.class);
+                startActivity(intent);
+            }
+        });
         // Botón para ver cuentas
         ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
         btnVerCuentas.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(CuentasActivity.this, CuentasActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        ImageButton btnVerTarjetas = findViewById(R.id.btnTarjetas);
+        btnVerTarjetas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(CuentasActivity.this, TarjetasCreditoActivity.class);
                 startActivity(intent);
             }
         });

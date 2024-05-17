@@ -33,4 +33,6 @@ public interface IFinanceService {
     @PUT("/api/v1/cuentas/{id}")
     Call<Cuenta> actualizarCuenta(@Path("id") int cuentaId, @Body Cuenta cuenta);
 
+    @POST("/api/v1/cuentas")
+    Call<Cuenta> crearCuenta(@Body Cuenta cuenta);
 }

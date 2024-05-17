@@ -22,6 +22,9 @@
             android:name=".TarjetasCreditoActivity"
             android:exported="false" />
         <activity
+            android:name=".NuevaCuentaActivity"
+            android:exported="false" />
+        <activity
             android:name=".NuevoMovimientoActivity"
             android:exported="false" />
         <activity

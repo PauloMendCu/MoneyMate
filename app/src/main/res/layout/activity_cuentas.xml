@@ -31,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp">
+            android:padding="10dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -109,6 +109,16 @@
             </LinearLayout>
 
         </LinearLayout>
+        <Button
+            android:id="@+id/btnAgregarCuenta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="10dp"
+            android:backgroundTint="@color/botonSecundario"
+            android:text="Agregar cuenta"
+            android:textAllCaps="true" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view_cuentas"
@@ -116,6 +126,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_marginTop="10dp" />
+
 
 
     </LinearLayout>
@@ -149,6 +160,15 @@
             android:contentDescription="Ver Movimientos" />
 
         <ImageButton
+            android:id="@+id/btnTarjetas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_tarjeta"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Movimientos" />
+
+        <ImageButton
             android:id="@+id/btn_nuevo_movimiento"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -156,6 +176,7 @@
             android:src="@drawable/ic_agregar"
             android:background="@android:color/transparent"
             android:contentDescription="Nuevo Movimiento" />
+
 
     </LinearLayout>
 

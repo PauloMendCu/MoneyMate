@@ -1,12 +1,14 @@
 package com.example.moneymate;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.Calendar;
@@ -81,6 +83,46 @@ public class RegistrarTarjetaCreditoActivity extends AppCompatActivity {
                 }
             }
         });
+
+        // Botón para ver movimientos
+        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(RegistrarTarjetaCreditoActivity.this, MovimientosActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Botón para ver cuentas
+        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(RegistrarTarjetaCreditoActivity.this, CuentasActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        ImageButton btnVerTarjetas = findViewById(R.id.btnTarjetas);
+        btnVerTarjetas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(RegistrarTarjetaCreditoActivity.this, TarjetasCreditoActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        // Botón para registrar nuevo movimiento
+        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
+        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(RegistrarTarjetaCreditoActivity.this, NuevoMovimientoActivity.class);
+                startActivity(intent);
+            }
+        });
+
     }
 
     private void showDatePickerDialog(DatePickerDialog.OnDateSetListener listener) {

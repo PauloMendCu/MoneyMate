@@ -69,14 +69,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button btnRegistrarTarjetaCredito = findViewById(R.id.btn_registrar_tarjeta_credito);
-        btnRegistrarTarjetaCredito.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, RegistrarTarjetaCreditoActivity.class);
-                startActivity(intent);
-            }
-        });
+
 
         Animaciones();
     }

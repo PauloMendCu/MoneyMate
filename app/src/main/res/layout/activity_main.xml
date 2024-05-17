@@ -57,10 +57,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"
-            android:backgroundTint="@color/botonSecundario"
-            android:text="VER CUENTAS DEBITO"
+            android:backgroundTint="@color/botonPrimario"
+            android:text="VER CUENTAS"
             android:textAllCaps="true" />
 
         <Button
@@ -71,7 +71,7 @@
             android:backgroundTint="@color/botonSecundario"
             android:textAllCaps="true"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"/>
 
         <Button
@@ -82,7 +82,7 @@
             android:backgroundTint="@color/botonSecundario2"
             android:textAllCaps="true"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"/>
 
         <Button
@@ -97,17 +97,6 @@
             android:text="REGISTRAR MOVIMIENTO"
             android:textAllCaps="true" />
 
-        <Button
-            android:id="@+id/btn_registrar_tarjeta_credito"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
-            android:backgroundTint="@color/colorFondo"
-            android:text="REGISTRAR TARJETA DE CREDITO"
-            android:textAllCaps="true" />
 
     </LinearLayout>
 </LinearLayout>
