@@ -120,6 +120,7 @@ public class CuentasActivity extends AppCompatActivity {
         super.onResume();
         fetchCuentas();
         fetchResumen();
+
     }
 
 
