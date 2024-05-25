@@ -119,6 +119,7 @@ public class CuentasActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         fetchCuentas();
+        fetchResumen();
     }
 
 
