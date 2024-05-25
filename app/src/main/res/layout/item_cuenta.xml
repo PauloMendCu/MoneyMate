@@ -7,6 +7,12 @@
     android:padding="16dp">
 
     <TextView
+        android:id="@+id/tvTipo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"/>
+
+    <TextView
         android:id="@+id/tvNombreCuenta"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

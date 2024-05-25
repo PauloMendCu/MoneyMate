@@ -114,7 +114,12 @@ public class CuentasActivity extends AppCompatActivity {
         fetchCuentas();
         fetchResumen();
     }
-
+    // CuentasActivity.java
+    @Override
+    protected void onResume() {
+        super.onResume();
+        fetchCuentas();
+    }
 
 
     private void fetchResumen() {

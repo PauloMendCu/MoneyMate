@@ -9,4 +9,6 @@
     <color name="colorPrimaryDark">#000000</color>
     <color name="FondoSecundario">#09423f</color>
     <color name="botonPrimario">#004c4f</color>
+    <color name="verde">#4CAF50</color> <!-- Verde -->
+    <color name="rojo">#F44336</color> <!-- Rojo -->
 </resources>

@@ -10,11 +10,13 @@ public class Cuenta {
     private int id;
     private String nombre;
     private double saldo;
+    private int tipo;
 
-    public Cuenta(int id, String nombre, double saldo) {
+    public Cuenta(int id, String nombre, double saldo, int tipo) {
         this.id = id;
         this.nombre = nombre;
         this.saldo = saldo;
+        this.tipo = tipo;
     }
 
     public Cuenta() {
@@ -43,5 +45,13 @@ public class Cuenta {
 
     public void setSaldo(double saldo) {
         this.saldo = saldo;
+    }
+
+    public int getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(int tipo) {
+        this.tipo = tipo;
     }
 }

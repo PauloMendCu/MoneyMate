@@ -29,6 +29,8 @@
 
     </LinearLayout>
 
+
+
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -36,6 +38,28 @@
         android:paddingTop="80dp"
         android:paddingLeft="20dp"
         android:paddingRight="20dp">
+
+        <!-- activity_nuevacuenta.xml -->
+        <RadioGroup
+            android:id="@+id/rg_tipo_cuenta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rb_cuenta_debito"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Cuenta Débito" />
+
+            <RadioButton
+                android:id="@+id/rb_cuenta_credito"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cuenta Crédito" />
+
+        </RadioGroup>
 
 
         <EditText
