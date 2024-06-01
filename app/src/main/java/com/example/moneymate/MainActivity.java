@@ -50,14 +50,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button btnVerTarjetasCredito = findViewById(R.id.btn_ver_tarjetas_credito);
-        btnVerTarjetasCredito.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, TarjetasCreditoActivity.class);
-                startActivity(intent);
-            }
-        });
 
         // Botón para registrar nuevo movimiento
         Button btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
