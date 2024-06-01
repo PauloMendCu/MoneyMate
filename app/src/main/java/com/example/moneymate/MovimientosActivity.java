@@ -113,14 +113,6 @@ public class MovimientosActivity extends AppCompatActivity {
         });
 
 
-        ImageButton btnVerTarjetas = findViewById(R.id.btnTarjetas);
-        btnVerTarjetas.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MovimientosActivity.this, TarjetasCreditoActivity.class);
-                startActivity(intent);
-            }
-        });
 
 
         // Botón para registrar nuevo movimiento
