@@ -1,22 +1,24 @@
 package entities;
 
-import com.google.gson.annotations.SerializedName;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
+@Entity(tableName = "cuentas")
 public class Cuenta {
+    @PrimaryKey(autoGenerate = true)
     private int id;
     private String nombre;
     private double saldo;
     private int tipo;
+    private boolean isSynced;  // Nuevo campo
 
-    public Cuenta(int id, String nombre, double saldo, int tipo) {
+
+    public Cuenta(int id, String nombre, double saldo, int tipo, boolean isSynced) {
         this.id = id;
         this.nombre = nombre;
         this.saldo = saldo;
         this.tipo = tipo;
+        this.isSynced = isSynced;
     }
 
     public Cuenta() {
@@ -53,5 +55,13 @@ public class Cuenta {
 
     public void setTipo(int tipo) {
         this.tipo = tipo;
+    }
+
+    public boolean isSynced() {
+        return isSynced;
+    }
+
+    public void setIsSynced(boolean isSynced) {
+        this.isSynced = isSynced;
     }
 }

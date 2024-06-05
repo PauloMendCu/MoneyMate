@@ -1,20 +1,21 @@
 package com.example.moneymate;
 
-import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.room.Room;
 
+import entities.AppDatabase;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -22,12 +23,16 @@ public class MainActivity extends AppCompatActivity {
     private ImageView logoImageView;
     private LinearLayout buttonLinearLayout;
     private TextView textView;
+    private AppDatabase db;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        db = Room.databaseBuilder(getApplicationContext(),
+                AppDatabase.class, "database-name").allowMainThreadQueries().build();
 
 
         // Botón para ver movimientos
@@ -64,6 +69,14 @@ public class MainActivity extends AppCompatActivity {
 
 
         Animaciones();
+    }
+
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     protected void Animaciones(){

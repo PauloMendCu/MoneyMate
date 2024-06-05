@@ -1,19 +1,17 @@
 package com.example.moneymate;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import adapters.CuentaAdapter;
+import entities.AppDatabase;
 import entities.Cuenta;
 import entities.Movimiento;
 import entities.RetrofitClient;
@@ -40,11 +39,16 @@ public class CuentasActivity extends AppCompatActivity {
     private TextView tvIngresosTotalesTexto;
     private TextView tvGastosTotalesMonto;
     private TextView tvGastosTotalesTexto;
+    private AppDatabase db;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cuentas);
+
+        db = AppDatabase.getInstance(this);  // Utiliza getInstance()
+
 
         tvSaldoTotalMonto = findViewById(R.id.tv_saldo_total_monto);
         tvSaldoTotalTexto = findViewById(R.id.tv_saldo_total_texto);
@@ -149,33 +153,60 @@ public class CuentasActivity extends AppCompatActivity {
 
 
     private void fetchCuentas() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-            @Override
-            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                if (response.isSuccessful()) {
-                    cuentas.clear();
-                    cuentas.addAll(response.body());
-                    adapter.notifyDataSetChanged(); // Actualizar el adaptador para mostrar las cuentas
+        if (isNetworkAvailable()) {
+            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+            api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
+                @Override
+                public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
+                    if (response.isSuccessful()) {
+                        cuentas.clear();
+                        List<Cuenta> cuentasServidor = response.body();
+                        cuentas.addAll(cuentasServidor);
+                        adapter.notifyDataSetChanged();
 
-                    // Calcular el saldo total de las cuentas
-                    double saldoTotal = 0;
-                    for (Cuenta cuenta : cuentas) {
-                        saldoTotal += cuenta.getSaldo();
+                        // Actualizar o insertar las cuentas en la base de datos local
+                        for (Cuenta cuenta : cuentasServidor) {
+                            Cuenta cuentaLocal = db.cuentaDao().getCuentaById(cuenta.getId());
+                            if (cuentaLocal == null) {
+                                db.cuentaDao().insert(cuenta);
+                            } else {
+                                db.cuentaDao().update(cuenta);
+                            }
+                        }
                     }
-
-                    // Actualizar el TextView con el saldo total
-
-                    tvSaldoTotalMonto.setText(String.format("S/.%.2f",saldoTotal));
-
-
                 }
-            }
 
-            @Override
-            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onFailure(Call<List<Cuenta>> call, Throwable t) {
+                    Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                    cargarDatosLocales();
+                }
+            });
+        } else {
+            cargarDatosLocales();
+        }
     }
+
+    private void cargarDatosLocales() {
+        cuentas.clear();
+        cuentas.addAll(db.cuentaDao().getAll());
+        adapter.notifyDataSetChanged();
+        actualizarSaldoTotal();
+    }
+
+    private void actualizarSaldoTotal() {
+        double saldoTotal = 0;
+        for (Cuenta cuenta : cuentas) {
+            saldoTotal += cuenta.getSaldo();
+        }
+        tvSaldoTotalMonto.setText(String.format("S/.%.2f", saldoTotal));
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
 }
+
