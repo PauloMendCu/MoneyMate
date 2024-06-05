@@ -1,6 +1,9 @@
 package com.example.moneymate;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -16,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import entities.AppDatabase;
 import entities.Cuenta;
 import entities.Movimiento;
 import entities.RetrofitClient;
@@ -29,12 +33,15 @@ public class NuevaCuentaActivity extends AppCompatActivity {
     private Button btnGuardar;
     private RadioGroup rgTipoCuenta;
     private RadioButton rbCuentaDebito, rbCuentaCredito;
+    private AppDatabase db;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nuevacuenta);
 
+        db = AppDatabase.getInstance(this);  // Utiliza getInstance()
 
         etNombreCuenta = findViewById(R.id.etMontoCuenta);
         etSaldoCuenta = findViewById(R.id.etSaldoCuenta);
@@ -124,9 +131,25 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         nuevaCuenta.setNombre(nombreCuenta);
         nuevaCuenta.setSaldo(saldo);
         nuevaCuenta.setTipo(tipoCuenta);
+        nuevaCuenta.setIsSynced(false);
 
-        // Llamar al método para guardar la cuenta en el servidor
-        guardarCuentaEnServidor(nuevaCuenta);
+
+        if (isNetworkAvailable()) {
+            // Llamar al método para guardar la cuenta en el servidor
+            guardarCuentaEnServidor(nuevaCuenta);
+        } else {
+            db.cuentaDao().insert(nuevaCuenta);
+            Toast.makeText(this, "Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+
+
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
     private void guardarCuentaEnServidor(Cuenta nuevaCuenta) {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
@@ -142,6 +165,10 @@ public class NuevaCuentaActivity extends AppCompatActivity {
                         crearMovimientoSaldoInicial(cuentaCreada);
                     }
 
+                    nuevaCuenta.setId(cuentaCreada.getId());
+                    nuevaCuenta.setIsSynced(true);
+                    db.cuentaDao().insert(nuevaCuenta);
+
                     finish(); // Cierra la actividad actual
                 } else {
                     Toast.makeText(NuevaCuentaActivity.this, "Error al crear la cuenta", Toast.LENGTH_SHORT).show();
@@ -150,8 +177,9 @@ public class NuevaCuentaActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<Cuenta> call, Throwable t) {
-                Toast.makeText(NuevaCuentaActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-            }
+                Toast.makeText(NuevaCuentaActivity.this, "No se pudo conectar al servidor. Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
+                db.cuentaDao().insert(nuevaCuenta);
+                finish();            }
         });
     }
 
