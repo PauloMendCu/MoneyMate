@@ -11,21 +11,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymate.R;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import entities.Categoria;
 import entities.Cuenta;
 import entities.Movimiento;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-import java.util.List;
 
 public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.MovimientoViewHolder> {
 
@@ -140,7 +131,5 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     public int getItemCount() {
         return movimientos.size();
     }
-
-
 
 }

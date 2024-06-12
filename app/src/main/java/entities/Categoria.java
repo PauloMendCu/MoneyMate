@@ -1,7 +1,15 @@
 package entities;
 
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "categorias")
 public class Categoria {
+    @PrimaryKey
     private int id;
+
+    @ColumnInfo(name = "nombre")
     private String nombre;
 
     public Categoria() {
