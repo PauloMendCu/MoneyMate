@@ -1,18 +1,39 @@
 package entities;
 
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
 import java.util.Comparator;
-
+@Entity(tableName = "movimientos")
 public class Movimiento {
+    @PrimaryKey
     private int id;
-    private String descripcion;
-    private double monto;
-    private String fecha;
-    private String tipo;
-    private int cuentaId;
-    private int categoriaId;
-    private int cuentaDestId;
 
-    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId, int cuentaDestId) {
+    @ColumnInfo(name = "descripcion")
+    private String descripcion;
+
+    @ColumnInfo(name = "monto")
+    private double monto;
+
+    @ColumnInfo(name = "fecha")
+    private String fecha;
+
+    @ColumnInfo(name = "tipo")
+    private String tipo;
+
+    @ColumnInfo(name = "cuentaId")
+    private int cuentaId;
+
+    @ColumnInfo(name = "categoriaId")
+    private int categoriaId;
+
+    @ColumnInfo(name = "cuentaDestId")
+    private int cuentaDestId;
+    private boolean isSynced;  // Nuevo campo
+
+
+    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId, int cuentaDestId, boolean isSynced) {
         this.id = id;
         this.descripcion = descripcion;
         this.monto = monto;
@@ -21,6 +42,7 @@ public class Movimiento {
         this.cuentaId = cuentaId;
         this.categoriaId = categoriaId;
         this.cuentaDestId = cuentaDestId;
+        this.isSynced = isSynced;
     }
 
     public Movimiento() {
@@ -88,6 +110,14 @@ public class Movimiento {
 
     public void setCuentaDestId(int cuentaDestId) {
         this.cuentaDestId = cuentaDestId;
+    }
+
+    public boolean isSynced() {
+        return isSynced;
+    }
+
+    public void setIsSynced(boolean isSynced) {
+        this.isSynced = isSynced;
     }
 
     public static Comparator<Movimiento> ordenarPorFechaDescendente = new Comparator<Movimiento>() {

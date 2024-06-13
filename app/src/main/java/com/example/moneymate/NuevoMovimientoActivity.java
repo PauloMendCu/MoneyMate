@@ -2,7 +2,10 @@ package com.example.moneymate;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -24,6 +27,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import adapters.CategoriaAdapter;
+import entities.AppDatabase;
 import entities.Categoria;
 import entities.Cuenta;
 import entities.Movimiento;
@@ -37,7 +42,7 @@ import services.IFinanceService;
 public class NuevoMovimientoActivity extends AppCompatActivity {
 
     private LinearLayout layoutCategorias;
-    private Spinner spinnerCuenta;
+    private Spinner spinnerCuenta, spinnerCategoria;
     private EditText etDescripcion, etMonto;
     private RadioGroup rgTipo;
     private RadioButton rbIngreso, rbGasto, rbTransferencia;
@@ -46,19 +51,23 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private EditText etFecha;
     private Button btnSeleccionarFecha;
     private String fechaActual;
-
     private Spinner spinnerCuentaDestino;
-
-
+    private AppDatabase db;
     private List<Categoria> categorias;
     private List<Cuenta> cuentas;
     private String fecha;
     private int categoriaSeleccionadaId = -1;
 
+    private ArrayAdapter<Cuenta> cuentaAdapter;
+    private ArrayAdapter<Cuenta> cuentaDestinoAdapter;
+    private CategoriaAdapter categoriaAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nuevo_movimiento);
+
+        db = AppDatabase.getInstance(this);
 
         layoutCategorias = findViewById(R.id.layout_categorias);
         spinnerCuenta = findViewById(R.id.spinner_cuenta);
@@ -75,8 +84,19 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         btnSeleccionarFecha.setOnClickListener(v -> mostrarSelectorFecha());
 
-        categorias = new ArrayList<>();
-        cuentas = new ArrayList<>();
+        cuentas = db.cuentaDao().getAll();
+        categorias = db.categoriaDao().getAllCategorias();
+
+        cuentaAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentas);
+        cuentaAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCuenta.setAdapter(cuentaAdapter);
+
+        cuentaDestinoAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentas);
+        cuentaDestinoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCuentaDestino.setAdapter(cuentaDestinoAdapter);
+
+        categoriaAdapter = new CategoriaAdapter(this, categorias);
+        spinnerCategoria.setAdapter(categoriaAdapter);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         fecha = sdf.format(new Date());
@@ -181,21 +201,32 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     }
 
     private void fetchCategorias() {
-        ICategoriaService categoriaApi = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
-        categoriaApi.getCategorias().enqueue(new Callback<List<Categoria>>() {
-            @Override
-            public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
-                if (response.isSuccessful()) {
-                    categorias = response.body();
-                    configurarBotonesCategorias();
+        if (isNetworkAvailable()){
+            ICategoriaService categoriaApi = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
+            categoriaApi.getCategorias().enqueue(new Callback<List<Categoria>>() {
+                @Override
+                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
+                    if (response.isSuccessful()) {
+                        categorias = response.body();
+                        configurarBotonesCategorias();
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                Toast.makeText(NuevoMovimientoActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onFailure(Call<List<Categoria>> call, Throwable t) {
+                    Toast.makeText(NuevoMovimientoActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }else{
+            cargarCategoriasLocales();
+            configurarBotonesCategorias();
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     private void configurarBotonesCategorias() {
@@ -223,22 +254,36 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         }
     }
 
-    private void fetchCuentas() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-            @Override
-            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                if (response.isSuccessful()) {
-                    cuentas = response.body();
-                    configurarSpinnerCuenta();
-                }
-            }
+    private void cargarCuentasLocales() {
+        cuentas.clear();
+        cuentas.addAll(db.cuentaDao().getAll());
+    }
+    private void cargarCategoriasLocales() {
+        categorias.clear();
+        categorias.addAll(db.categoriaDao().getAllCategorias());
+    }
 
-            @Override
-            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                Toast.makeText(NuevoMovimientoActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void fetchCuentas() {
+        if(isNetworkAvailable()){
+            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+            api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
+                @Override
+                public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
+                    if (response.isSuccessful()) {
+                        cuentas = response.body();
+                        configurarSpinnerCuenta();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<Cuenta>> call, Throwable t) {
+                    Toast.makeText(NuevoMovimientoActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }else{
+            cargarCuentasLocales();
+            configurarSpinnerCuenta();
+        }
     }
 
     private void configurarSpinnerCuenta() {
@@ -339,24 +384,34 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             nuevoMovimiento.setCuentaDestId(0); // Valor por defecto para tipos diferentes a "Transferencia"
         }
 
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
-            @Override
-            public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(NuevoMovimientoActivity.this, "Movimiento guardado correctamente", Toast.LENGTH_SHORT).show();
-                    actualizarSaldoCuenta(nuevoMovimiento); // Llamar al método para actualizar el saldo
-                    finish(); // Cierra la actividad actual
-                } else {
-                    Toast.makeText(NuevoMovimientoActivity.this, "Error al guardar el movimiento", Toast.LENGTH_SHORT).show();
+        if (isNetworkAvailable()){
+            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+            api.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
+                @Override
+                public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
+                    if (response.isSuccessful()) {
+                        nuevoMovimiento.setIsSynced(true);
+                        db.movimientoDao().insert(nuevoMovimiento);
+                        actualizarSaldoCuenta(nuevoMovimiento); // Llamar al método para actualizar el saldo
+                        Toast.makeText(NuevoMovimientoActivity.this, "Movimiento guardado correctamente", Toast.LENGTH_SHORT).show();
+                        finish(); // Cierra la actividad actual
+                    } else {
+                        Toast.makeText(NuevoMovimientoActivity.this, "Error al guardar el movimiento", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<Movimiento> call, Throwable t) {
-                Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onFailure(Call<Movimiento> call, Throwable t) {
+                    Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }else{
+            nuevoMovimiento.setIsSynced(false);
+            db.movimientoDao().insert(nuevoMovimiento);
+            actualizarSaldoCuentaLocalmente(nuevoMovimiento);
+            Toast.makeText(this, "Movimiento guardado localmente", Toast.LENGTH_SHORT).show();
+            finish();
+        }
     }
 
     private Cuenta getCuentaById(int cuentaId) {
@@ -465,5 +520,34 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                 Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void actualizarSaldoCuentaLocalmente(Movimiento movimiento) {
+        int cuentaId = movimiento.getCuentaId();
+        double montoMovimiento = movimiento.getMonto();
+        String tipoMovimiento = movimiento.getTipo();
+
+        Cuenta cuenta = db.cuentaDao().getCuentaById(cuentaId);
+        double nuevoSaldo;
+
+        if (tipoMovimiento.equals("Ingreso")) {
+            nuevoSaldo = cuenta.getSaldo() + montoMovimiento;
+        } else if (tipoMovimiento.equals("Gasto")) {
+            nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
+        } else { // Transferencia
+            int cuentaDestinoId = movimiento.getCuentaDestId();
+            nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
+            actualizarSaldoCuentaDestinoLocalmente(cuentaDestinoId, montoMovimiento);
+        }
+
+        cuenta.setSaldo(nuevoSaldo);
+        db.cuentaDao().update(cuenta);
+    }
+
+    private void actualizarSaldoCuentaDestinoLocalmente(int cuentaDestinoId, double monto) {
+        Cuenta cuentaDestino = db.cuentaDao().getCuentaById(cuentaDestinoId);
+        double nuevoSaldo = cuentaDestino.getSaldo() + monto;
+        cuentaDestino.setSaldo(nuevoSaldo);
+        db.cuentaDao().update(cuentaDestino);
     }
 }

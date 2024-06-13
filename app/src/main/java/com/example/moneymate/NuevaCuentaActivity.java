@@ -131,16 +131,13 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         nuevaCuenta.setNombre(nombreCuenta);
         nuevaCuenta.setSaldo(saldo);
         nuevaCuenta.setTipo(tipoCuenta);
-        nuevaCuenta.setIsSynced(false);
-
 
         if (isNetworkAvailable()) {
-            // Llamar al método para guardar la cuenta en el servidor
+            nuevaCuenta.setIsSynced(true);
             guardarCuentaEnServidor(nuevaCuenta);
         } else {
-            db.cuentaDao().insert(nuevaCuenta);
-            Toast.makeText(this, "Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
-            finish();
+            nuevaCuenta.setIsSynced(false);
+            guardarCuentaLocalmente(nuevaCuenta);
         }
 
 
@@ -160,14 +157,14 @@ public class NuevaCuentaActivity extends AppCompatActivity {
                     Cuenta cuentaCreada = response.body();
                     Toast.makeText(NuevaCuentaActivity.this, "Cuenta creada correctamente", Toast.LENGTH_SHORT).show();
 
+                    // Marcar la cuenta como sincronizada y guardar localmente
+                    cuentaCreada.setIsSynced(true);
+                    guardarCuentaLocalmente(cuentaCreada);
+
                     // Si es una cuenta de débito, crear el movimiento de "Saldo inicial"
                     if (cuentaCreada.getTipo() == 1) {
-                        crearMovimientoSaldoInicial(cuentaCreada);
+                        crearMovimientoSaldoInicial(cuentaCreada, true);
                     }
-
-                    nuevaCuenta.setId(cuentaCreada.getId());
-                    nuevaCuenta.setIsSynced(true);
-                    db.cuentaDao().insert(nuevaCuenta);
 
                     finish(); // Cierra la actividad actual
                 } else {
@@ -178,12 +175,34 @@ public class NuevaCuentaActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<Cuenta> call, Throwable t) {
                 Toast.makeText(NuevaCuentaActivity.this, "No se pudo conectar al servidor. Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
-                db.cuentaDao().insert(nuevaCuenta);
-                finish();            }
+                nuevaCuenta.setIsSynced(false);
+                guardarCuentaLocalmente(nuevaCuenta);
+            }
         });
     }
 
-    private void crearMovimientoSaldoInicial(Cuenta nuevaCuenta) {
+    private void guardarCuentaLocalmente(Cuenta cuenta) {
+        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+            // Generar un ID único solo si no tiene uno
+            if (cuenta.getId() == 0) {
+                int ultimoId = db.cuentaDao().generateUniqueId();
+                cuenta.setId(ultimoId);
+            }
+            db.cuentaDao().insert(cuenta);
+
+            if (cuenta.getTipo() == 1) {
+                crearMovimientoSaldoInicial(cuenta, false);
+            }
+
+            runOnUiThread(() -> {
+                Toast.makeText(NuevaCuentaActivity.this, "Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
+                finish(); // Cierra la actividad actual
+            });
+        });
+    }
+
+
+    private void crearMovimientoSaldoInicial(Cuenta nuevaCuenta, boolean isSynced) {
         Movimiento movimientoSaldoInicial = new Movimiento();
         movimientoSaldoInicial.setDescripcion("Saldo inicial");
         movimientoSaldoInicial.setMonto(nuevaCuenta.getSaldo());
@@ -192,22 +211,37 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         movimientoSaldoInicial.setCuentaId(nuevaCuenta.getId());
         movimientoSaldoInicial.setCategoriaId(1); // Categoría predefinida para "Saldo inicial"
         movimientoSaldoInicial.setCuentaDestId(0);
+        movimientoSaldoInicial.setIsSynced(isSynced);
 
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.agregarMovimiento(movimientoSaldoInicial).enqueue(new Callback<Movimiento>() {
-            @Override
-            public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(NuevaCuentaActivity.this, "Movimiento de saldo inicial guardado correctamente", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(NuevaCuentaActivity.this, "Error al guardar el movimiento de saldo inicial", Toast.LENGTH_SHORT).show();
+        if (isSynced) {
+            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+            api.agregarMovimiento(movimientoSaldoInicial).enqueue(new Callback<Movimiento>() {
+                @Override
+                public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
+                    if (response.isSuccessful()) {
+                        Movimiento movimientoCreado = response.body();
+                        movimientoCreado.setIsSynced(true);
+                        guardarMovimientoLocalmente(movimientoCreado);
+                    } else {
+                        Toast.makeText(NuevaCuentaActivity.this, "Error al guardar el movimiento de saldo inicial", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<Movimiento> call, Throwable t) {
-                Toast.makeText(NuevaCuentaActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-            }
+                @Override
+                public void onFailure(Call<Movimiento> call, Throwable t) {
+                    Toast.makeText(NuevaCuentaActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+                    movimientoSaldoInicial.setIsSynced(false);
+                    guardarMovimientoLocalmente(movimientoSaldoInicial);
+                }
+            });
+        } else {
+            guardarMovimientoLocalmente(movimientoSaldoInicial);
+        }
+    }
+
+    private void guardarMovimientoLocalmente(Movimiento movimiento) {
+        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+            db.movimientoDao().insert(movimiento);
         });
     }
     private String obtenerFechaActual() {

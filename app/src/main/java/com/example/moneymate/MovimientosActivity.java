@@ -1,6 +1,9 @@
 package com.example.moneymate;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Pair;
 import android.view.View;
@@ -11,11 +14,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,8 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import adapters.CategoriaAdapter;
 import adapters.MovimientoAdapter;
+import entities.AppDatabase;
 import entities.Categoria;
 import entities.Cuenta;
 import entities.Movimiento;
@@ -125,18 +124,132 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         });
 
-
-        fetchCuentas();
-        fetchCategorias();
-
         adapter = new MovimientoAdapter(movimientosCompletos, cuentas, categorias);
         recyclerView.setAdapter(adapter);
 
-        fetchMovimientos();
+        cargarMovimientosLocales();
+        sincronizarMovimientos();
         configurarSpinnerCategoria();
 
-        filtrarMovimientos();
     }
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    private void cargarMovimientosLocales() {
+        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
+            runOnUiThread(() -> {
+                //adapter.setMovimientos(movimientosCompletos);
+                adapter.notifyDataSetChanged();
+            });
+        });
+    }
+
+    private void sincronizarMovimientos() {
+        if (isNetworkAvailable()) {
+            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+            api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
+                @Override
+                public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
+                    if (response.isSuccessful()) {
+                        List<Movimiento> movimientosAPI = response.body();
+                        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+                            List<Movimiento> movimientosLocalesNoSincronizados = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getMovimientosNoSincronizados();
+
+                            for (Movimiento movimientoLocal : movimientosLocalesNoSincronizados) {
+                                guardarMovimientoEnServidor(movimientoLocal);
+                            }
+
+                            for (Movimiento movimientoAPI : movimientosAPI) {
+                                boolean existeEnLocal = false;
+                                for (Movimiento movimientoLocal : movimientosCompletos) {
+                                    if (movimientoLocal.getId() == movimientoAPI.getId()) {
+                                        existeEnLocal = true;
+                                        break;
+                                    }
+                                }
+                                if (!existeEnLocal) {
+                                    movimientoAPI.setIsSynced(true);
+                                    AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().insert(movimientoAPI);
+                                }
+                            }
+
+                            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
+                            runOnUiThread(() -> {
+                                //adapter.setMovimientos(movimientosCompletos);
+                                adapter.notifyDataSetChanged();
+                            });
+                        });
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<Movimiento>> call, Throwable t) {
+                    Toast.makeText(MovimientosActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
+    private void guardarMovimientoEnServidor(Movimiento movimientoLocal) {
+        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+        api.agregarMovimiento(movimientoLocal).enqueue(new Callback<Movimiento>() {
+            @Override
+            public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
+                if (response.isSuccessful()) {
+                    Movimiento movimientoCreado = response.body();
+                    movimientoCreado.setIsSynced(true);
+                    AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+                        AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().update(movimientoCreado);
+                        movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
+                        runOnUiThread(() -> {
+                            //adapter.setMovimientos(movimientosCompletos);
+                            adapter.notifyDataSetChanged();
+                        });
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Movimiento> call, Throwable t) {
+                // Log failure
+            }
+        });
+    }
+
+    private void sincronizarCategorias() {
+        if (isNetworkAvailable()) {
+            ICategoriaService api = RetrofitClient.getInstance().create(ICategoriaService.class);
+            api.getCategorias().enqueue(new Callback<List<Categoria>>() {
+                @Override
+                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
+                    if (response.isSuccessful()) {
+                        List<Categoria> categoriasAPI = response.body();
+                        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+                            for (Categoria categoria : categoriasAPI) {
+                                if (AppDatabase.getInstance(MovimientosActivity.this).categoriaDao().getCategoriaById(categoria.getId()) == null) {
+                                    AppDatabase.getInstance(MovimientosActivity.this).categoriaDao().insert(categoria);
+                                }
+                            }
+                            categorias = AppDatabase.getInstance(MovimientosActivity.this).categoriaDao().getAllCategorias();
+                            runOnUiThread(() -> {
+                                // Actualizar spinnerCategoria con las nuevas categorías
+                            });
+                        });
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<Categoria>> call, Throwable t) {
+                    Toast.makeText(MovimientosActivity.this, "No se pudo sincronizar las categorías", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
 
     private Pair<Integer, Integer> obtenerMesYAnoActuales() {
         Calendar calendar = Calendar.getInstance();

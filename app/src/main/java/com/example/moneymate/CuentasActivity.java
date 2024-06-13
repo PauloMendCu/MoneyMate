@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -39,16 +38,11 @@ public class CuentasActivity extends AppCompatActivity {
     private TextView tvIngresosTotalesTexto;
     private TextView tvGastosTotalesMonto;
     private TextView tvGastosTotalesTexto;
-    private AppDatabase db;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cuentas);
-
-        db = AppDatabase.getInstance(this);  // Utiliza getInstance()
-
 
         tvSaldoTotalMonto = findViewById(R.id.tv_saldo_total_monto);
         tvSaldoTotalTexto = findViewById(R.id.tv_saldo_total_texto);
@@ -66,60 +60,46 @@ public class CuentasActivity extends AppCompatActivity {
             intent.putExtra("cuenta_id", cuenta.getId());
             startActivity(intent);
         });
-        recyclerView.setAdapter(adapter);;
+        recyclerView.setAdapter(adapter);
 
         // Botón para ver movimientos
         ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
-        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(CuentasActivity.this, MovimientosActivity.class);
-                startActivity(intent);
-            }
+        btnVerMovimientos.setOnClickListener(view -> {
+            Intent intent = new Intent(CuentasActivity.this, MovimientosActivity.class);
+            startActivity(intent);
         });
-        // Bton para crear nueva cuenta
+
+        // Botón para crear nueva cuenta
         Button btnAgregarCuenta = findViewById(R.id.btnAgregarCuenta);
-        btnAgregarCuenta.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(CuentasActivity.this, NuevaCuentaActivity.class);
-                startActivity(intent);
-            }
+        btnAgregarCuenta.setOnClickListener(v -> {
+            Intent intent = new Intent(CuentasActivity.this, NuevaCuentaActivity.class);
+            startActivity(intent);
         });
+
         // Botón para ver cuentas
         ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
-        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(CuentasActivity.this, CuentasActivity.class);
-                startActivity(intent);
-            }
+        btnVerCuentas.setOnClickListener(view -> {
+            Intent intent = new Intent(CuentasActivity.this, CuentasActivity.class);
+            startActivity(intent);
         });
-
-
 
         // Botón para registrar nuevo movimiento
         ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
-        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(CuentasActivity.this, NuevoMovimientoActivity.class);
-                startActivity(intent);
-            }
+        btnNuevoMovimiento.setOnClickListener(v -> {
+            Intent intent = new Intent(CuentasActivity.this, NuevoMovimientoActivity.class);
+            startActivity(intent);
         });
 
-        fetchCuentas();
+        cargarDatosLocales();
         fetchResumen();
     }
-    // CuentasActivity.java
+
     @Override
     protected void onResume() {
         super.onResume();
-        fetchCuentas();
+        sincronizarCuentas();
         fetchResumen();
-
     }
-
 
     private void fetchResumen() {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
@@ -140,7 +120,7 @@ public class CuentasActivity extends AppCompatActivity {
                     }
 
                     tvIngresosTotalesMonto.setText(String.format("S/.%.2f", ingresosTotales));
-                    tvGastosTotalesMonto.setText(String.format("S/.%.2f",gastosTotales));
+                    tvGastosTotalesMonto.setText(String.format("S/.%.2f", gastosTotales));
                 }
             }
 
@@ -151,35 +131,68 @@ public class CuentasActivity extends AppCompatActivity {
         });
     }
 
-
-    private void fetchCuentas() {
+    private void sincronizarCuentas() {
         if (isNetworkAvailable()) {
             IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
             api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
                 @Override
                 public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
                     if (response.isSuccessful()) {
-                        cuentas.clear();
-                        List<Cuenta> cuentasServidor = response.body();
-                        cuentas.addAll(cuentasServidor);
-                        adapter.notifyDataSetChanged();
+                        List<Cuenta> cuentasAPI = response.body();
 
-                        // Actualizar o insertar las cuentas en la base de datos local
-                        for (Cuenta cuenta : cuentasServidor) {
-                            Cuenta cuentaLocal = db.cuentaDao().getCuentaById(cuenta.getId());
-                            if (cuentaLocal == null) {
-                                db.cuentaDao().insert(cuenta);
-                            } else {
-                                db.cuentaDao().update(cuenta);
+                        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+                            List<Cuenta> cuentasLocales = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getAllCuentas();
+                            List<Cuenta> cuentasLocalesNoSincronizadas = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getCuentasNoSincronizadas();
+
+                            // Sincronizar cuentas locales no sincronizadas con la API
+                            for (Cuenta cuentaLocal : cuentasLocalesNoSincronizadas) {
+                                guardarCuentaEnServidor(cuentaLocal);
                             }
-                        }
+
+                            // Identificar nuevas cuentas en la API que no están en local
+                            List<Cuenta> nuevasCuentasAPI = new ArrayList<>();
+                            for (Cuenta cuentaAPI : cuentasAPI) {
+                                boolean existeEnLocal = false;
+                                for (Cuenta cuentaLocal : cuentasLocales) {
+                                    if (cuentaLocal.getId() == cuentaAPI.getId()) {
+                                        existeEnLocal = true;
+                                        break;
+                                    }
+                                }
+                                if (!existeEnLocal) {
+                                    nuevasCuentasAPI.add(cuentaAPI);
+                                }
+                            }
+
+                            // Sincronizar nuevas cuentas de la API con la base de datos local
+                            for (Cuenta cuentaAPI : nuevasCuentasAPI) {
+                                cuentaAPI.setIsSynced(true); // Marcar como sincronizada
+                                AppDatabase.getInstance(CuentasActivity.this).cuentaDao().insert(cuentaAPI);
+                            }
+
+                            // Marcar cuentas locales como sincronizadas
+                            for (Cuenta cuentaLocal : cuentasLocalesNoSincronizadas) {
+                                cuentaLocal.setIsSynced(true);
+                                AppDatabase.getInstance(CuentasActivity.this).cuentaDao().update(cuentaLocal);
+                            }
+
+                            // Actualizar la lista de cuentas locales
+                            List<Cuenta> cuentasActualizadas = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getAllCuentas();
+
+                            // Actualizar la interfaz de usuario en el hilo principal
+                            runOnUiThread(() -> {
+                                cuentas.clear();
+                                cuentas.addAll(cuentasActualizadas);
+                                adapter.notifyDataSetChanged();
+                                actualizarSaldoTotal();
+                            });
+                        });
                     }
                 }
 
                 @Override
                 public void onFailure(Call<List<Cuenta>> call, Throwable t) {
                     Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-                    cargarDatosLocales();
                 }
             });
         } else {
@@ -187,11 +200,60 @@ public class CuentasActivity extends AppCompatActivity {
         }
     }
 
+
+    private void guardarCuentaEnServidor(Cuenta cuentaLocal) {
+        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+        api.crearCuenta(cuentaLocal).enqueue(new Callback<Cuenta>() {
+            @Override
+            public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                if (response.isSuccessful()) {
+                    Cuenta cuentaCreada = response.body();
+                    cuentaCreada.setIsSynced(true); // Marcar la cuenta como sincronizada en la API
+                    actualizarCuentaEnServidor(cuentaCreada); // Actualizar la cuenta en la API
+                    AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+                        cuentaLocal.setId(cuentaCreada.getId());
+                        cuentaLocal.setIsSynced(true); // Marca la cuenta como sincronizada
+                        AppDatabase.getInstance(CuentasActivity.this).cuentaDao().update(cuentaLocal);
+                    });
+                } else {
+                    Toast.makeText(CuentasActivity.this, "Error al sincronizar la cuenta", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Cuenta> call, Throwable t) {
+                Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void actualizarCuentaEnServidor(Cuenta cuenta) {
+        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
+        api.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
+            @Override
+            public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                if (!response.isSuccessful()) {
+                    Toast.makeText(CuentasActivity.this, "Error al actualizar la cuenta en el servidor", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Cuenta> call, Throwable t) {
+                Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor para actualizar la cuenta", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void cargarDatosLocales() {
-        cuentas.clear();
-        cuentas.addAll(db.cuentaDao().getAll());
-        adapter.notifyDataSetChanged();
-        actualizarSaldoTotal();
+        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+            List<Cuenta> cuentasLocales = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getAllCuentas();
+            runOnUiThread(() -> {
+                cuentas.clear(); // Limpiar la lista antes de agregar las cuentas locales
+                cuentas.addAll(cuentasLocales);
+                adapter.notifyDataSetChanged();
+                actualizarSaldoTotal();
+            });
+        });
     }
 
     private void actualizarSaldoTotal() {
@@ -207,6 +269,6 @@ public class CuentasActivity extends AppCompatActivity {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
-
 }
+
 

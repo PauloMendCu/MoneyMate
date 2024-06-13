@@ -1,15 +1,24 @@
 package entities;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "cuentas")
 public class Cuenta {
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     private int id;
+
+    @ColumnInfo(name = "nombre")
     private String nombre;
+
+    @ColumnInfo(name = "saldo")
     private double saldo;
+
+    @ColumnInfo(name = "tipo")
     private int tipo;
+
+    @ColumnInfo(name = "is_synced")
     private boolean isSynced;  // Nuevo campo
 
 
