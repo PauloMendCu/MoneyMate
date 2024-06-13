@@ -17,20 +17,12 @@ public interface MovimientoDao {
     void insert(Movimiento movimiento);
     @Query("SELECT * FROM movimientos WHERE isSynced = 0")
     List<Movimiento> getMovimientosNoSincronizados();
-
-    @Query("SELECT * FROM movimientos WHERE cuentaId = :cuentaId AND strftime('%m', fecha) = :mes AND strftime('%Y', fecha) = :ano")
-    List<Movimiento> getMovimientosByCuentaYFecha(int cuentaId, String mes, String ano);
-
-    @Query("SELECT * FROM movimientos WHERE cuentaId = :cuentaId AND categoriaId = :categoriaId AND strftime('%m', fecha) = :mes AND strftime('%Y', fecha) = :ano")
-    List<Movimiento> getMovimientosByCuentaCategoriaYFecha(int cuentaId, int categoriaId, String mes, String ano);
-
-
     @Update
     void update(Movimiento movimiento);
 
     @Delete
     void delete(Movimiento movimiento);
-    @Query("SELECT * FROM movimientos WHERE id = :id")
+    @Query("SELECT * FROM movimientos WHERE id = :id LIMIT 1")
     Movimiento getMovimientoById(int id);
 
     @Query("SELECT * FROM movimientos")

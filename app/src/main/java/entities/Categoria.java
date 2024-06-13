@@ -11,13 +11,15 @@ public class Categoria {
 
     @ColumnInfo(name = "nombre")
     private String nombre;
+    private boolean isSynced;
 
     public Categoria() {
     }
 
-    public Categoria(int id, String nombre) {
+    public Categoria(int id, String nombre, boolean isSynced) {
         this.id = id;
         this.nombre = nombre;
+        this.isSynced = isSynced;
     }
 
     public int getId() {
@@ -34,5 +36,13 @@ public class Categoria {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
+    }
+
+    public boolean isSynced() {
+        return isSynced;
+    }
+
+    public void setIsSynced(boolean isSynced) {
+        this.isSynced = isSynced;
     }
 }
