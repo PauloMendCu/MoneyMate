@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Pair;
 import android.view.View;
 import android.widget.AdapterView;
@@ -22,9 +23,14 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import adapters.MovimientoAdapter;
+import dao.CategoriaDao;
+import dao.CuentaDao;
+import dao.MovimientoDao;
 import entities.AppDatabase;
 import entities.Categoria;
 import entities.Cuenta;
@@ -46,340 +52,457 @@ public class MovimientosActivity extends AppCompatActivity {
     private int categoriaSeleccionada = -1;
     private int mesSeleccionado;
     private int anoSeleccionado;
+    private TextView tvMesAno;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movimientos);
 
+        // Inicializaciones
+        inicializarComponentes();
+
+        // Cargar datos locales y sincronizar
+        cargarDatosLocales();
+        //actualizarMovimientos();
+
+        // Sincronizar datos con el servidor
+        sincronizarDatos();
+
+    }
+
+    private void inicializarComponentes() {
         recyclerView = findViewById(R.id.recycler_view_movimientos);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         movimientosCompletos = new ArrayList<>();
-        movimientosCompletos.clear();
         cuentas = new ArrayList<>();
         categorias = new ArrayList<>();
         spinnerCategoria = findViewById(R.id.spinner_categorias);
-        TextView tvMesAno = findViewById(R.id.tv_mes_ano);
-        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
-        String mesAnoTexto = String.format("%02d/%04d", mesYAno.first, mesYAno.second);
-        tvMesAno.setText(mesAnoTexto);
+        tvMesAno = findViewById(R.id.tv_mes_ano);
 
+        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
         mesSeleccionado = mesYAno.first;
         anoSeleccionado = mesYAno.second;
+        actualizarTextoMesAno();
 
-        ImageButton btnMesAnterior = findViewById(R.id.btn_mes_anterior);
-        ImageButton btnMesSiguiente = findViewById(R.id.btn_mes_siguiente);
+        // Botones de navegación entre meses
+        configurarBotonesNavegacion();
 
-        btnMesAnterior.setOnClickListener(v -> {
-            // Retroceder al mes anterior
-            mesSeleccionado--;
-            if (mesSeleccionado < 1) {
-                mesSeleccionado = 12;
-                anoSeleccionado--;
-            }
-            actualizarMovimientos();
-        });
-
-        btnMesSiguiente.setOnClickListener(v -> {
-            // Avanzar al mes siguiente
-            mesSeleccionado++;
-            if (mesSeleccionado > 12) {
-                mesSeleccionado = 1;
-                anoSeleccionado++;
-            }
-            actualizarMovimientos();
-        });
-
-        // Botón para ver movimientos
-        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
-        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MovimientosActivity.this, MovimientosActivity.class);
-                startActivity(intent);
-            }
-        });
-
-        // Botón para ver cuentas
-        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
-        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MovimientosActivity.this, CuentasActivity.class);
-                startActivity(intent);
-            }
-        });
-
-
-
-
-        // Botón para registrar nuevo movimiento
-        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
-        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MovimientosActivity.this, NuevoMovimientoActivity.class);
-                startActivity(intent);
-            }
-        });
+        // Botones de navegación principal
+        configurarBotonesPrincipal();
 
         adapter = new MovimientoAdapter(movimientosCompletos, cuentas, categorias);
         recyclerView.setAdapter(adapter);
 
-        cargarMovimientosLocales();
-        sincronizarMovimientos();
         configurarSpinnerCategoria();
-
-    }
-    private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private void cargarMovimientosLocales() {
-        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
+    private void configurarBotonesNavegacion() {
+        ImageButton btnMesAnterior = findViewById(R.id.btn_mes_anterior);
+        ImageButton btnMesSiguiente = findViewById(R.id.btn_mes_siguiente);
+
+        btnMesAnterior.setOnClickListener(v -> {
+            cambiarMes(-1);
+        });
+
+        btnMesSiguiente.setOnClickListener(v -> {
+            cambiarMes(1);
+        });
+    }
+
+    private void cambiarMes(int incremento) {
+        mesSeleccionado += incremento;
+        if (mesSeleccionado < 1) {
+            mesSeleccionado = 12;
+            anoSeleccionado--;
+        } else if (mesSeleccionado > 12) {
+            mesSeleccionado = 1;
+            anoSeleccionado++;
+        }
+        actualizarTextoMesAno();
+        actualizarMovimientos();
+    }
+
+    private void configurarBotonesPrincipal() {
+        // Botón para ver movimientos
+        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(view -> {
+            Intent intent = new Intent(MovimientosActivity.this, MovimientosActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para ver cuentas
+        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(view -> {
+            Intent intent = new Intent(MovimientosActivity.this, CuentasActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para registrar nuevo movimiento
+        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
+        btnNuevoMovimiento.setOnClickListener(v -> {
+            Intent intent = new Intent(MovimientosActivity.this, NuevoMovimientoActivity.class);
+            startActivity(intent);
+        });
+    }
+
+    private void cargarDatosLocales() {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(this);
+            MovimientoDao movimientoDao = db.movimientoDao();
+            CategoriaDao categoriaDao = db.categoriaDao();
+            CuentaDao cuentaDao = db.cuentaDao();
+
+            // Cargar movimientos locales
+            List<Movimiento> movimientosLocales = movimientoDao.getAllMovimientos();
             runOnUiThread(() -> {
-                //adapter.setMovimientos(movimientosCompletos);
-                adapter.notifyDataSetChanged();
+                movimientosCompletos.addAll(movimientosLocales);
+                adapter.notifyDataSetChanged(); // Actualizar el adaptador con los movimientos cargados
+            });
+
+            // Cargar categorías locales
+            List<Categoria> categoriasLocales = categoriaDao.getAllCategorias();
+            runOnUiThread(() -> {
+                categorias.addAll(categoriasLocales);
+                configurarSpinnerCategoria(); // Configurar el spinner con las categorías cargadas
+            });
+
+            // Cargar cuentas locales
+            List<Cuenta> cuentasLocales = cuentaDao.getAllCuentas();
+            runOnUiThread(() -> {
+                cuentas.addAll(cuentasLocales);
+                adapter.notifyDataSetChanged(); // Actualizar el adaptador con las cuentas cargadas
             });
         });
     }
 
-    private void sincronizarMovimientos() {
-        if (isNetworkAvailable()) {
-            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-            api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
-                @Override
-                public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
-                    if (response.isSuccessful()) {
-                        List<Movimiento> movimientosAPI = response.body();
-                        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-                            List<Movimiento> movimientosLocalesNoSincronizados = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getMovimientosNoSincronizados();
-
-                            for (Movimiento movimientoLocal : movimientosLocalesNoSincronizados) {
-                                guardarMovimientoEnServidor(movimientoLocal);
-                            }
-
-                            for (Movimiento movimientoAPI : movimientosAPI) {
-                                boolean existeEnLocal = false;
-                                for (Movimiento movimientoLocal : movimientosCompletos) {
-                                    if (movimientoLocal.getId() == movimientoAPI.getId()) {
-                                        existeEnLocal = true;
-                                        break;
-                                    }
-                                }
-                                if (!existeEnLocal) {
-                                    movimientoAPI.setIsSynced(true);
-                                    AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().insert(movimientoAPI);
-                                }
-                            }
-
-                            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
-                            runOnUiThread(() -> {
-                                //adapter.setMovimientos(movimientosCompletos);
-                                adapter.notifyDataSetChanged();
-                            });
-                        });
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<List<Movimiento>> call, Throwable t) {
-                    Toast.makeText(MovimientosActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-    }
-
-    private void guardarMovimientoEnServidor(Movimiento movimientoLocal) {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.agregarMovimiento(movimientoLocal).enqueue(new Callback<Movimiento>() {
-            @Override
-            public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                if (response.isSuccessful()) {
-                    Movimiento movimientoCreado = response.body();
-                    movimientoCreado.setIsSynced(true);
-                    AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-                        AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().update(movimientoCreado);
-                        movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
-                        runOnUiThread(() -> {
-                            //adapter.setMovimientos(movimientosCompletos);
-                            adapter.notifyDataSetChanged();
-                        });
-                    });
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Movimiento> call, Throwable t) {
-                // Log failure
-            }
+    private void sincronizarDatos() {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(() -> {
+            sincronizarMovimientos();
+            sincronizarCategorias();
+            sincronizarCuentas();  // Agregar método para sincronizar cuentas
         });
     }
 
     private void sincronizarCategorias() {
-        if (isNetworkAvailable()) {
-            ICategoriaService api = RetrofitClient.getInstance().create(ICategoriaService.class);
-            api.getCategorias().enqueue(new Callback<List<Categoria>>() {
-                @Override
-                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
-                    if (response.isSuccessful()) {
-                        List<Categoria> categoriasAPI = response.body();
-                        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-                            for (Categoria categoria : categoriasAPI) {
-                                if (AppDatabase.getInstance(MovimientosActivity.this).categoriaDao().getCategoriaById(categoria.getId()) == null) {
-                                    AppDatabase.getInstance(MovimientosActivity.this).categoriaDao().insert(categoria);
-                                }
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        CategoriaDao categoriaDao = AppDatabase.getInstance(this).categoriaDao();
+        ICategoriaService categoriaService = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
+
+        // Obtener categorías no sincronizadas localmente
+        List<Categoria> categoriasNoSincronizadas = categoriaDao.getCategoriasNoSincronizadas();
+
+        // Sincronizar categorías locales con el servidor
+        if (!categoriasNoSincronizadas.isEmpty()) {
+            for (Categoria categoria : categoriasNoSincronizadas) {
+                categoriaService.agregarCategoria(categoria).enqueue(new Callback<Categoria>() {
+                    @Override
+                    public void onResponse(Call<Categoria> call, Response<Categoria> response) {
+                        if (response.isSuccessful()) {
+                            Categoria categoriaSincronizada = response.body();
+                            if (categoriaSincronizada != null) {
+                                categoriaSincronizada.setIsSynced(true);
+                                executorService.execute(() -> {
+                                    categoriaDao.update(categoriaSincronizada);
+                                });
                             }
-                            categorias = AppDatabase.getInstance(MovimientosActivity.this).categoriaDao().getAllCategorias();
-                            runOnUiThread(() -> {
-                                // Actualizar spinnerCategoria con las nuevas categorías
-                            });
-                        });
+                        }
                     }
-                }
 
-                @Override
-                public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                    Toast.makeText(MovimientosActivity.this, "No se pudo sincronizar las categorías", Toast.LENGTH_SHORT).show();
-                }
-            });
+                    @Override
+                    public void onFailure(Call<Categoria> call, Throwable t) {
+                        // Manejar error
+                    }
+                });
+            }
         }
-    }
 
-
-    private Pair<Integer, Integer> obtenerMesYAnoActuales() {
-        Calendar calendar = Calendar.getInstance();
-        int mesActual = calendar.get(Calendar.MONTH) + 1; // Los meses van de 0 a 11
-        int anoActual = calendar.get(Calendar.YEAR);
-        return new Pair<>(mesActual, anoActual);
-    }
-    private void actualizarMovimientos() {
-        adapter.updateMovimientos(movimientosCompletos.stream()
-                .filter(movimiento -> {
-                    String[] partesFecha = movimiento.getFecha().split("-");
-                    int mes = Integer.parseInt(partesFecha[1]);
-                    int ano = Integer.parseInt(partesFecha[0]);
-                    return (mes == mesSeleccionado && ano == anoSeleccionado) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
-                })
-                .collect(Collectors.toList()));
-        TextView tvMesAno = findViewById(R.id.tv_mes_ano);
-        String mesAnoTexto = String.format("%02d/%04d", mesSeleccionado, anoSeleccionado);
-        tvMesAno.setText(mesAnoTexto);
-    }
-
-    private void configurarSpinnerCategoria() {
-        // Configurar el adaptador y el listener del spinner
-        ArrayAdapter<String> adapterSpinner = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-        adapterSpinner.add("Todas las categorías");
-        spinnerCategoria.setAdapter(adapterSpinner);
-        spinnerCategoria.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position == 0) {
-                    categoriaSeleccionada = -1; // Mostrar todos los movimientos
-                } else {
-                    categoriaSeleccionada = categorias.get(position - 1).getId();
-                }
-
-                filtrarMovimientos();
-                actualizarMovimientos();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // No hacer nada
-            }
-        });
-    }
-
-    private void fetchCategorias() {
-        ICategoriaService categoriaApi = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
-        categoriaApi.getCategorias().enqueue(new Callback<List<Categoria>>() {
+        // Obtener categorías del servidor y sincronizar con la base de datos local
+        categoriaService.getCategorias().enqueue(new Callback<List<Categoria>>() {
             @Override
             public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
                 if (response.isSuccessful()) {
-                    categorias.clear();
+                    List<Categoria> categoriasServidor = response.body();
+                    Log.d("Sync", "Categorías obtenidas del servidor: " + categoriasServidor.size());
+                    if (categoriasServidor != null) {
+                        executorService.execute(() -> {
+                            for (Categoria categoria : categoriasServidor) {
+                                Log.d("Sync", "Procesando categoría: " + categoria.getNombre());
+                                categoria.setIsSynced(true);
+                                // Verificar si la categoría ya existe antes de insertarla
+                                Categoria categoriaExistente = categoriaDao.getCategoriaById(categoria.getId());
+                                if (categoriaExistente == null) {
+                                    categoriaDao.insert(categoria);
+                                    Log.d("Sync", "Categoría insertada: " + categoria.getNombre());
+                                } else {
+                                    categoriaDao.update(categoria);
+                                    Log.d("Sync", "Categoría actualizada: " + categoria.getNombre());
+                                }
+                            }
 
-                    ArrayAdapter<String> adapterSpinner = (ArrayAdapter<String>) spinnerCategoria.getAdapter();
-                    adapterSpinner.clear();
-                    adapterSpinner.add("Todas las categorías");
+                            runOnUiThread(() -> {
+                                categorias.clear();
+                                categorias.addAll(categoriasServidor);
+                                configurarSpinnerCategoria(); // Actualizar el spinner con las categorías sincronizadas
+                            });
 
-                    categorias.addAll(response.body());
+                            // Actualizar categorías en el servidor como sincronizadas
+                            for (Categoria categoria : categoriasServidor) {
+                                categoriaService.actualizarCategoria(categoria.getId(), categoria).enqueue(new Callback<Categoria>() {
+                                    @Override
+                                    public void onResponse(Call<Categoria> call, Response<Categoria> response) {
+                                        Log.d("Sync", "Categoría sincronizada en el servidor: " + categoria.getNombre());
+                                    }
 
-                    for (Categoria categoria : categorias) {
-                        adapterSpinner.add(categoria.getNombre());
+                                    @Override
+                                    public void onFailure(Call<Categoria> call, Throwable t) {
+                                        Log.e("Sync", "Error al sincronizar la categoría en el servidor", t);
+                                    }
+                                });
+                            }
+                        });
                     }
-                    adapterSpinner.notifyDataSetChanged();
-
-                    filtrarMovimientos();
-                    actualizarMovimientos();
+                } else {
+                    Log.e("Sync", "Error al obtener las categorías del servidor");
                 }
             }
 
             @Override
             public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                Toast.makeText(MovimientosActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                Log.e("Sync", "Error en la llamada de red para obtener categorías", t);
             }
         });
     }
 
-    private void fetchCuentas() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-            @Override
-            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                if (response.isSuccessful()) {
-                    cuentas.clear();
-                    cuentas.addAll(response.body());
-                    adapter.notifyDataSetChanged();
-                }
-            }
+    private void sincronizarMovimientos() {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
+        IFinanceService apiService = RetrofitClient.getInstance().create(IFinanceService.class);
 
-            @Override
-            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                Toast.makeText(MovimientosActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
+        // Obtener movimientos no sincronizados localmente
+        List<Movimiento> movimientosNoSincronizados = movimientoDao.getMovimientosNoSincronizados();
 
-    private void fetchMovimientos() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
+        // Sincronizar movimientos locales con el servidor
+        if (!movimientosNoSincronizados.isEmpty()) {
+            for (Movimiento movimiento : movimientosNoSincronizados) {
+                apiService.agregarMovimiento(movimiento).enqueue(new Callback<Movimiento>() {
+                    @Override
+                    public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
+                        if (response.isSuccessful()) {
+                            Movimiento movimientoSincronizado = response.body();
+                            if (movimientoSincronizado != null) {
+                                movimientoSincronizado.setIsSynced(true);
+                                executorService.execute(() -> {
+                                    movimientoDao.update(movimientoSincronizado);
+                                });
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<Movimiento> call, Throwable t) {
+                        // Manejar error
+                    }
+                });
+            }
+        }
+
+        // Obtener movimientos del servidor y sincronizar con la base de datos local
+        apiService.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
             @Override
             public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
                 if (response.isSuccessful()) {
-                    movimientosCompletos.clear();
-                    movimientosCompletos.addAll(response.body());
-                    Collections.sort(movimientosCompletos, Movimiento.ordenarPorFechaDescendente);
-                    filtrarMovimientos();
+                    List<Movimiento> movimientosServidor = response.body();
+                    if (movimientosServidor != null) {
+                        executorService.execute(() -> {
+                            for (Movimiento movimiento : movimientosServidor) {
+                                movimiento.setIsSynced(true);
+                                // Verificar si el movimiento ya existe antes de insertarlo
+                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId());
+                                if (movimientoExistente == null) {
+                                    movimientoDao.insert(movimiento);
+                                } else {
+                                    movimientoDao.update(movimiento);
+                                }
+                            }
+
+                            // Actualizar movimientos en el servidor como sincronizados
+                            for (Movimiento movimiento : movimientosServidor) {
+                                apiService.actualizarMovimiento(movimiento.getId(), movimiento).enqueue(new Callback<Movimiento>() {
+                                    @Override
+                                    public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
+                                        // Movimiento actualizado correctamente en el servidor
+                                    }
+
+                                    @Override
+                                    public void onFailure(Call<Movimiento> call, Throwable t) {
+                                        // Manejar error
+                                    }
+                                });
+                            }
+                        });
+                    }
                 }
             }
 
             @Override
             public void onFailure(Call<List<Movimiento>> call, Throwable t) {
-                Toast.makeText(MovimientosActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                // Manejar error
             }
         });
     }
 
-    private void filtrarMovimientos() {
-        Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
-        int mesActual = mesYAno.first;
-        int anoActual = mesYAno.second;
 
-        adapter.updateMovimientos(movimientosCompletos.stream()
+    private void sincronizarCuentas() {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        CuentaDao cuentaDao = AppDatabase.getInstance(this).cuentaDao();
+        IFinanceService apiService = RetrofitClient.getInstance().create(IFinanceService.class);
+
+        // Obtener cuentas no sincronizadas localmente
+        List<Cuenta> cuentasNoSincronizadas = cuentaDao.getCuentasNoSincronizadas();
+
+        // Sincronizar cuentas locales con el servidor
+        if (!cuentasNoSincronizadas.isEmpty()) {
+            for (Cuenta cuenta : cuentasNoSincronizadas) {
+                apiService.crearCuenta(cuenta).enqueue(new Callback<Cuenta>() {
+                    @Override
+                    public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                        if (response.isSuccessful()) {
+                            Cuenta cuentaSincronizada = response.body();
+                            if (cuentaSincronizada != null) {
+                                cuentaSincronizada.setIsSynced(true);
+                                executorService.execute(() -> {
+                                    cuentaDao.update(cuentaSincronizada);
+                                });
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<Cuenta> call, Throwable t) {
+                        // Manejar error
+                    }
+                });
+            }
+        }
+
+        // Obtener cuentas del servidor y sincronizar con la base de datos local
+        apiService.getCuentas().enqueue(new Callback<List<Cuenta>>() {
+            @Override
+            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
+                if (response.isSuccessful()) {
+                    List<Cuenta> cuentasServidor = response.body();
+                    if (cuentasServidor != null) {
+                        executorService.execute(() -> {
+                            for (Cuenta cuenta : cuentasServidor) {
+                                cuenta.setIsSynced(true);
+                                // Verificar si la cuenta ya existe antes de insertarla
+                                Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId());
+                                if (cuentaExistente == null) {
+                                    cuentaDao.insert(cuenta);
+                                } else {
+                                    cuentaDao.update(cuenta);
+                                }
+                            }
+
+                            // Actualizar cuentas en el servidor como sincronizadas
+                            for (Cuenta cuenta : cuentasServidor) {
+                                apiService.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
+                                    @Override
+                                    public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                                        // Cuenta actualizada correctamente en el servidor
+                                    }
+
+                                    @Override
+                                    public void onFailure(Call<Cuenta> call, Throwable t) {
+                                        // Manejar error
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
+                // Manejar error
+            }
+        });
+    }
+
+
+
+    private void actualizarMovimientos() {
+        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
+            runOnUiThread(() -> {
+                filtrarMovimientos();
+            });
+        });
+    }
+
+    private void filtrarMovimientos() {
+        List<Movimiento> movimientosFiltrados = movimientosCompletos.stream()
                 .filter(movimiento -> {
                     String[] partesFecha = movimiento.getFecha().split("-");
                     int mes = Integer.parseInt(partesFecha[1]);
                     int ano = Integer.parseInt(partesFecha[0]);
-                    return (mes == mesActual && ano == anoActual) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
+                    boolean matchesCategoria = categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada;
+                    return (mes == mesSeleccionado && ano == anoSeleccionado) && matchesCategoria;
                 })
-                .collect(Collectors.toList()));
-
+                .collect(Collectors.toList());
+        adapter.updateMovimientos(movimientosFiltrados);
     }
 
+    private void configurarSpinnerCategoria() {
+        List<String> nombresCategorias = new ArrayList<>();
+        nombresCategorias.add("Todas las categorias");
+        for (Categoria categoria : categorias) {
+            nombresCategorias.add(categoria.getNombre());
+        }
+
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, nombresCategorias);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategoria.setAdapter(spinnerAdapter);
+
+        spinnerCategoria.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == 0) {
+                    categoriaSeleccionada = -1;
+                } else {
+                    categoriaSeleccionada = categorias.get(position - 1).getId();
+                }
+                filtrarMovimientos();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // No action needed
+            }
+        });
+    }
+
+
+
+    private void actualizarTextoMesAno() {
+        String[] nombresMeses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        String textoMesAno = nombresMeses[mesSeleccionado - 1] + " " + anoSeleccionado;
+        tvMesAno.setText(textoMesAno);
+    }
+
+    private Pair<Integer, Integer> obtenerMesYAnoActuales() {
+        Calendar calendar = Calendar.getInstance();
+        return new Pair<>(calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.YEAR));
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
 }

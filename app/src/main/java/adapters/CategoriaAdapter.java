@@ -47,4 +47,8 @@ public class CategoriaAdapter extends ArrayAdapter<Categoria> {
 
         return convertView;
     }
+    public void updateCategorias(List<Categoria> categoriasNuevas) {
+        this.categorias = categoriasNuevas;
+        notifyDataSetChanged();
+    }
 }

@@ -126,6 +126,17 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
 
         notifyDataSetChanged();
     }
+    public void updateCuentas(List<Cuenta> cuentasNuevas) {
+        cuentas = new ArrayList<>(cuentasNuevas);
+        Log.d("MovimientoAdapter", "Nuevas cuentas: " + cuentas.size());
+        notifyDataSetChanged();
+    }
+
+    public void updateCategorias(List<Categoria> categoriasNuevas) {
+        categorias = new ArrayList<>(categoriasNuevas);
+        Log.d("MovimientoAdapter", "Nuevas categorías: " + categorias.size());
+        notifyDataSetChanged();
+    }
 
     @Override
     public int getItemCount() {

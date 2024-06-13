@@ -19,7 +19,7 @@ public interface CuentaDao {
     List<Cuenta> getCuentasNoSincronizadas();
 
 
-    @Query("SELECT * FROM cuentas WHERE id = :id")
+    @Query("SELECT * FROM cuentas WHERE id = :id LIMIT 1")
     Cuenta getCuentaById(int id);
 
     @Delete

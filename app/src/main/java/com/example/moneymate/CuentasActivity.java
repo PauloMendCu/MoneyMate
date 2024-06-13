@@ -168,6 +168,7 @@ public class CuentasActivity extends AppCompatActivity {
                             for (Cuenta cuentaAPI : nuevasCuentasAPI) {
                                 cuentaAPI.setIsSynced(true); // Marcar como sincronizada
                                 AppDatabase.getInstance(CuentasActivity.this).cuentaDao().insert(cuentaAPI);
+                                actualizarCuentaEnServidor(cuentaAPI); // Actualizar la cuenta en la API
                             }
 
                             // Marcar cuentas locales como sincronizadas
