@@ -45,4 +45,9 @@ public class Categoria {
     public void setIsSynced(boolean isSynced) {
         this.isSynced = isSynced;
     }
+
+    @Override
+    public String toString() {
+        return this.nombre; // Asegúrate de que `nombre` sea el atributo correcto que contiene el nombre de la categoría
+    }
 }

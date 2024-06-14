@@ -3,31 +3,29 @@ package com.example.moneymate;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import adapters.CategoriaAdapter;
 import entities.AppDatabase;
 import entities.Categoria;
 import entities.Cuenta;
@@ -36,518 +34,334 @@ import entities.RetrofitClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import services.ICategoriaService;
 import services.IFinanceService;
 
 public class NuevoMovimientoActivity extends AppCompatActivity {
-
-    private LinearLayout layoutCategorias;
-    private Spinner spinnerCuenta, spinnerCategoria;
-    private EditText etDescripcion, etMonto;
-    private RadioGroup rgTipo;
+    private EditText etDescripcion, etMonto, etFecha;
+    private Spinner spinnerCuenta, spinnerCuentaDestino, spinnerCategoria;
     private RadioButton rbIngreso, rbGasto, rbTransferencia;
-    private Button btnGuardar;
-    private Button btnCategoriaSeleccionada;
-    private EditText etFecha;
-    private Button btnSeleccionarFecha;
-    private String fechaActual;
-    private Spinner spinnerCuentaDestino;
+    private Button btnGuardar, btnSeleccionarFecha;
     private AppDatabase db;
-    private List<Categoria> categorias;
-    private List<Cuenta> cuentas;
-    private String fecha;
-    private int categoriaSeleccionadaId = -1;
-
-    private ArrayAdapter<Cuenta> cuentaAdapter;
-    private ArrayAdapter<Cuenta> cuentaDestinoAdapter;
-    private CategoriaAdapter categoriaAdapter;
+    private static final int NO_CUENTA_SELECCIONADA = -1;
+    private Calendar selectedDate = Calendar.getInstance();
+    private IFinanceService financeService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nuevo_movimiento);
 
-        db = AppDatabase.getInstance(this);
-
-        layoutCategorias = findViewById(R.id.layout_categorias);
-        spinnerCuenta = findViewById(R.id.spinner_cuenta);
         etDescripcion = findViewById(R.id.et_descripcion);
         etMonto = findViewById(R.id.et_monto);
-        rgTipo = findViewById(R.id.rg_tipo);
+        etFecha = findViewById(R.id.et_fecha);
+        spinnerCuenta = findViewById(R.id.spinner_cuenta);
+        spinnerCuentaDestino = findViewById(R.id.spinner_cuenta_destino);
+        spinnerCategoria = findViewById(R.id.spinner_categorias);
         rbIngreso = findViewById(R.id.rb_ingreso);
         rbGasto = findViewById(R.id.rb_gasto);
         rbTransferencia = findViewById(R.id.rb_transferencia);
         btnGuardar = findViewById(R.id.btn_guardar);
-        etFecha = findViewById(R.id.et_fecha);
         btnSeleccionarFecha = findViewById(R.id.btn_seleccionar_fecha);
-        spinnerCuentaDestino = findViewById(R.id.spinner_cuenta_destino);
 
-        btnSeleccionarFecha.setOnClickListener(v -> mostrarSelectorFecha());
+        db = AppDatabase.getInstance(this);
+        financeService = RetrofitClient.getInstance().create(IFinanceService.class);
 
-        cuentas = db.cuentaDao().getAll();
-        categorias = db.categoriaDao().getAllCategorias();
+        new LoadDataAsyncTask().execute();
 
-        cuentaAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentas);
-        cuentaAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCuenta.setAdapter(cuentaAdapter);
-
-        cuentaDestinoAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentas);
-        cuentaDestinoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCuentaDestino.setAdapter(cuentaDestinoAdapter);
-
-        categoriaAdapter = new CategoriaAdapter(this, categorias);
-        spinnerCategoria.setAdapter(categoriaAdapter);
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        fecha = sdf.format(new Date());
-
-        // Botón para ver movimientos
-        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
-        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(NuevoMovimientoActivity.this, MovimientosActivity.class);
-                startActivity(intent);
+        rbTransferencia.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                spinnerCuentaDestino.setVisibility(View.VISIBLE);
+            } else {
+                spinnerCuentaDestino.setVisibility(View.GONE);
             }
         });
 
-        // Botón para ver cuentas
-        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
-        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
+        etMonto.addTextChangedListener(new TextWatcher() {
             @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
-                startActivity(intent);
-            }
-        });
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-
-
-        // Botón para registrar nuevo movimiento
-        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
-        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(NuevoMovimientoActivity.this, NuevoMovimientoActivity.class);
-                startActivity(intent);
-            }
-        });
-
-        SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        fechaActual = sdf2.format(new Date());
-        etFecha.setText(fechaActual);
-
-        fetchCategorias();
-        fetchCuentas();
-
-        rgTipo.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                List<String> cuentasNombres = new ArrayList<>();
-
-                if (checkedId == R.id.rb_transferencia) {
-
-
-                    cuentasNombres.add("Seleccionar cuenta origen"); // Agregar opción vacía
-
-                    spinnerCuenta.setPrompt("Seleccionar cuenta origen");
-                    spinnerCuentaDestino.setVisibility(View.VISIBLE);
-                    configurarSpinnerCuentaDestino();
-                } else {
-                    cuentasNombres.add("Seleccionar cuenta"); // Agregar opción vacía
-                    spinnerCuenta.setPrompt("Seleccionar cuenta");
-                    spinnerCuentaDestino.setVisibility(View.GONE);
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!s.toString().matches("\\d*\\.?\\d*")) {
+                    etMonto.setError("Solo se permiten números.");
                 }
-
-                for (Cuenta cuenta : cuentas) {
-                    cuentasNombres.add(cuenta.getNombre());
-                }
-                ArrayAdapter<String> adapterCuenta = new ArrayAdapter<>(NuevoMovimientoActivity.this, android.R.layout.simple_spinner_item, cuentasNombres);
-                adapterCuenta.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                spinnerCuenta.setAdapter(adapterCuenta);
             }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
         });
 
-        btnGuardar.setOnClickListener(v -> guardarMovimiento());
-    }
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+        etFecha.setText(sdf.format(selectedDate.getTime()));
 
-    private void mostrarSelectorFecha() {
-        if (etFecha.getText().toString().equals(fechaActual)) {
-            Calendar calendar = Calendar.getInstance();
-            int year = calendar.get(Calendar.YEAR);
-            int month = calendar.get(Calendar.MONTH);
-            int day = calendar.get(Calendar.DAY_OF_MONTH);
-            int hour = calendar.get(Calendar.HOUR_OF_DAY);
-            int minute = calendar.get(Calendar.MINUTE);
-
-            DatePickerDialog datePickerDialog = new DatePickerDialog(this, (view, selectedYear, selectedMonth, selectedDay) -> {
-                Calendar selectedCalendar = Calendar.getInstance();
-                selectedCalendar.set(selectedYear, selectedMonth, selectedDay);
-
-                TimePickerDialog timePickerDialog = new TimePickerDialog(this, (view1, selectedHour, selectedMinute) -> {
-                    selectedCalendar.set(Calendar.HOUR_OF_DAY, selectedHour);
-                    selectedCalendar.set(Calendar.MINUTE, selectedMinute);
-
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                    String fechaSeleccionada = sdf.format(selectedCalendar.getTime());
-                    etFecha.setText(fechaSeleccionada);
-                }, hour, minute, true);
-
-                timePickerDialog.show();
-            }, year, month, day);
-
+        btnSeleccionarFecha.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                    NuevoMovimientoActivity.this,
+                    (view, year, monthOfYear, dayOfMonth) -> {
+                        selectedDate.set(Calendar.YEAR, year);
+                        selectedDate.set(Calendar.MONTH, monthOfYear);
+                        selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                        TimePickerDialog timePickerDialog = new TimePickerDialog(
+                                NuevoMovimientoActivity.this,
+                                (view1, hourOfDay, minute) -> {
+                                    selectedDate.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                                    selectedDate.set(Calendar.MINUTE, minute);
+                                    etFecha.setText(sdf.format(selectedDate.getTime()));
+                                },
+                                selectedDate.get(Calendar.HOUR_OF_DAY),
+                                selectedDate.get(Calendar.MINUTE),
+                                true
+                        );
+                        timePickerDialog.show();
+                    },
+                    selectedDate.get(Calendar.YEAR),
+                    selectedDate.get(Calendar.MONTH),
+                    selectedDate.get(Calendar.DAY_OF_MONTH)
+            );
             datePickerDialog.show();
+        });
+
+        btnGuardar.setOnClickListener(v -> {
+            if (validarCampos()) {
+                Movimiento movimiento = new Movimiento();
+                movimiento.setDescripcion(etDescripcion.getText().toString());
+                movimiento.setMonto(Double.parseDouble(etMonto.getText().toString()));
+                movimiento.setFecha(String.valueOf(selectedDate.getTimeInMillis()));
+                movimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
+                movimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
+                if (rbIngreso.isChecked()) {
+                    movimiento.setTipo("Ingreso");
+                } else if (rbGasto.isChecked()) {
+                    movimiento.setTipo("Gasto");
+                } else if (rbTransferencia.isChecked()) {
+                    movimiento.setTipo("Transferencia");
+                    movimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
+                }
+                if (isInternetAvailable()) {
+                    movimiento.setIsSynced(true);
+                    registrarMovimientoEnApi(movimiento);
+                } else {
+                    movimiento.setIsSynced(false);
+                    registrarMovimientoLocalmente(movimiento);
+                }
+            }
+        });
+    }
+
+    private class LoadDataAsyncTask extends AsyncTask<Void, Void, Void> {
+        private List<Cuenta> cuentas;
+        private List<Categoria> categorias;
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            cuentas = db.cuentaDao().getAll();
+            categorias = db.categoriaDao().getAllCategorias();
+
+            // Agregar elementos predeterminados
+            Cuenta defaultCuenta = new Cuenta();
+            defaultCuenta.setId(NO_CUENTA_SELECCIONADA);
+            defaultCuenta.setNombre("Seleccionar cuenta");
+            cuentas.add(0, defaultCuenta);
+
+            Categoria defaultCategoria = new Categoria();
+            defaultCategoria.setId(NO_CUENTA_SELECCIONADA);
+            defaultCategoria.setNombre("Seleccionar categoría");
+            categorias.add(0, defaultCategoria);
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            // Adapter para cuentas
+            ArrayAdapter<Cuenta> adapterCuentas = new ArrayAdapter<>(NuevoMovimientoActivity.this, android.R.layout.simple_spinner_item, cuentas);
+            adapterCuentas.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerCuenta.setAdapter(adapterCuentas);
+            spinnerCuentaDestino.setAdapter(adapterCuentas);
+
+            // Adapter para categorias
+            ArrayAdapter<Categoria> adapterCategorias = new ArrayAdapter<>(NuevoMovimientoActivity.this, android.R.layout.simple_spinner_item, categorias);
+            adapterCategorias.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerCategoria.setAdapter(adapterCategorias);
         }
     }
 
-    private void fetchCategorias() {
-        if (isNetworkAvailable()){
-            ICategoriaService categoriaApi = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
-            categoriaApi.getCategorias().enqueue(new Callback<List<Categoria>>() {
-                @Override
-                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
-                    if (response.isSuccessful()) {
-                        categorias = response.body();
-                        configurarBotonesCategorias();
-                    }
-                }
 
-                @Override
-                public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                    Toast.makeText(NuevoMovimientoActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }else{
-            cargarCategoriasLocales();
-            configurarBotonesCategorias();
-        }
-    }
-
-    private boolean isNetworkAvailable() {
+    private boolean isInternetAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private void configurarBotonesCategorias() {
-        layoutCategorias.removeAllViews();
 
-        for (Categoria categoria : categorias) {
-            Button btnCategoria = new Button(this);
-            btnCategoria.setText(categoria.getNombre());
-            btnCategoria.setBackgroundResource(android.R.drawable.btn_default); // Fondo por defecto
+    private void registrarMovimientoEnApi(Movimiento movimiento) {
+        new Thread(() -> {
+            // Log del movimiento antes de registrar
+            Log.d("MovimientoRegistro", "Registrando en API: " + movimiento.toString());
 
-            btnCategoria.setOnClickListener(v -> {
-                categoriaSeleccionadaId = categoria.getId();
-
-                // Restablecer el fondo del botón previamente seleccionado
-                if (btnCategoriaSeleccionada != null) {
-                    btnCategoriaSeleccionada.setBackgroundResource(android.R.drawable.btn_default);
-                }
-
-                // Cambiar el fondo del botón seleccionado
-                btnCategoriaSeleccionada = (Button) v;
-                btnCategoriaSeleccionada.setBackgroundResource(R.drawable.selector_button_bg);
-            });
-
-            layoutCategorias.addView(btnCategoria);
-        }
-    }
-
-    private void cargarCuentasLocales() {
-        cuentas.clear();
-        cuentas.addAll(db.cuentaDao().getAll());
-    }
-    private void cargarCategoriasLocales() {
-        categorias.clear();
-        categorias.addAll(db.categoriaDao().getAllCategorias());
-    }
-
-    private void fetchCuentas() {
-        if(isNetworkAvailable()){
-            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-            api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-                @Override
-                public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                    if (response.isSuccessful()) {
-                        cuentas = response.body();
-                        configurarSpinnerCuenta();
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                    Toast.makeText(NuevoMovimientoActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }else{
-            cargarCuentasLocales();
-            configurarSpinnerCuenta();
-        }
-    }
-
-    private void configurarSpinnerCuenta() {
-        List<String> cuentasNombres = new ArrayList<>();
-        cuentasNombres.add("Seleccionar cuenta"); // Agregar opción vacía
-        for (Cuenta cuenta : cuentas) {
-            cuentasNombres.add(cuenta.getNombre());
-        }
-        ArrayAdapter<String> adapterCuenta = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentasNombres);
-        adapterCuenta.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCuenta.setAdapter(adapterCuenta);
-    }
-
-    private void configurarSpinnerCuentaDestino() {
-        List<String> cuentasNombres = new ArrayList<>();
-        cuentasNombres.add("Seleccionar cuenta destino"); // Agregar opción vacía
-        for (Cuenta cuenta : cuentas) {
-            cuentasNombres.add(cuenta.getNombre());
-        }
-        ArrayAdapter<String> adapterCuentaDestino = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cuentasNombres);
-        adapterCuentaDestino.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCuentaDestino.setAdapter(adapterCuentaDestino);
-    }
-
-    private void guardarMovimiento() {
-        String descripcion = etDescripcion.getText().toString().trim();
-        String montoString = etMonto.getText().toString().trim();
-        int cuentaOrigenSeleccionada = spinnerCuenta.getSelectedItemPosition();
-        int cuentaDestinoSeleccionada = spinnerCuentaDestino.getSelectedItemPosition();
-        String tipo = obtenerTipoMovimiento();
-
-        String fechaMovimiento;
-        if (etFecha.getText().toString().equals(fechaActual)) {
-            fechaMovimiento = fechaActual;
-        } else {
-            fechaMovimiento = etFecha.getText().toString().trim();
-        }
-
-        // Validaciones
-        if (descripcion.isEmpty()) {
-            Toast.makeText(this, "Debes ingresar una descripción", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (montoString.isEmpty()) {
-            Toast.makeText(this, "Debes ingresar un monto", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        double monto;
-        try {
-            monto = Double.parseDouble(montoString);
-        } catch (NumberFormatException e) {
-            Toast.makeText(this, "El monto debe ser un número válido", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (categoriaSeleccionadaId == -1) {
-            Toast.makeText(this, "Debes seleccionar una categoría", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (cuentaOrigenSeleccionada == 0) {
-            Toast.makeText(this, "Debes seleccionar una cuenta", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (tipo == null) {
-            Toast.makeText(this, "Debes seleccionar un tipo de movimiento", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-
-        int cuentaId = cuentas.get(cuentaOrigenSeleccionada - 1).getId(); // Restar 1 para compensar la opción vacía
-        Cuenta cuentaOrigen = getCuentaById(cuentaId);
-        if ((tipo.equals("Gasto") || tipo.equals("Transferencia")) && monto > cuentaOrigen.getSaldo()) {
-            Toast.makeText(this, "El monto supera el saldo de la cuenta", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Si todas las validaciones pasan, crear el objeto Movimiento y guardarlo
-        Movimiento nuevoMovimiento = new Movimiento();
-        nuevoMovimiento.setDescripcion(descripcion);
-        nuevoMovimiento.setMonto(monto);
-        nuevoMovimiento.setTipo(tipo);
-        nuevoMovimiento.setCategoriaId(categoriaSeleccionadaId);
-        nuevoMovimiento.setCuentaId(cuentaId);
-        nuevoMovimiento.setFecha(fechaMovimiento);
-
-        if (tipo.equals("Transferencia")) {
-            if (cuentaDestinoSeleccionada == 0) {
-                Toast.makeText(this, "Debes seleccionar una cuenta destino", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            int cuentaDestinoId = cuentas.get(cuentaDestinoSeleccionada - 1).getId();
-            nuevoMovimiento.setCuentaDestId(cuentaDestinoId);
-        } else {
-            nuevoMovimiento.setCuentaDestId(0); // Valor por defecto para tipos diferentes a "Transferencia"
-        }
-
-        if (isNetworkAvailable()){
-            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-            api.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
+            // Llamada a la API para registrar el movimiento
+            financeService.agregarMovimiento(movimiento).enqueue(new Callback<Movimiento>() {
                 @Override
                 public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
                     if (response.isSuccessful()) {
-                        nuevoMovimiento.setIsSynced(true);
-                        db.movimientoDao().insert(nuevoMovimiento);
-                        actualizarSaldoCuenta(nuevoMovimiento); // Llamar al método para actualizar el saldo
-                        Toast.makeText(NuevoMovimientoActivity.this, "Movimiento guardado correctamente", Toast.LENGTH_SHORT).show();
-                        finish(); // Cierra la actividad actual
+                        Movimiento movimientoResponse = response.body();
+                        if (movimientoResponse != null) {
+                            movimiento.setId(movimientoResponse.getId());
+                            db.movimientoDao().insert(movimiento);
+
+                            // Actualizar saldos de las cuentas
+                            actualizarSaldosEnApi(movimiento);
+                            runOnUiThread(() -> {
+                                Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado", Toast.LENGTH_SHORT).show();
+                                Log.d("MovimientoRegistro", "Movimiento registrado en API y localmente: " + movimiento.toString());
+                            });
+                        }
                     } else {
-                        Toast.makeText(NuevoMovimientoActivity.this, "Error al guardar el movimiento", Toast.LENGTH_SHORT).show();
+                        movimiento.setIsSynced(false);
+                        db.movimientoDao().insert(movimiento);
+                        runOnUiThread(() -> Toast.makeText(NuevoMovimientoActivity.this, "Error al registrar en la API", Toast.LENGTH_SHORT).show());
                     }
                 }
 
                 @Override
                 public void onFailure(Call<Movimiento> call, Throwable t) {
-                    Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
+                    movimiento.setIsSynced(false);
+                    db.movimientoDao().insert(movimiento);
+                    runOnUiThread(() -> Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show());
                 }
             });
-        }else{
-            nuevoMovimiento.setIsSynced(false);
-            db.movimientoDao().insert(nuevoMovimiento);
-            actualizarSaldoCuentaLocalmente(nuevoMovimiento);
-            Toast.makeText(this, "Movimiento guardado localmente", Toast.LENGTH_SHORT).show();
-            finish();
-        }
+        }).start();
     }
 
-    private Cuenta getCuentaById(int cuentaId) {
-        for (Cuenta cuenta : cuentas) {
-            if (cuenta.getId() == cuentaId) {
-                return cuenta;
-            }
-        }
-        return null;
+    private void registrarMovimientoLocalmente(Movimiento movimiento) {
+        new Thread(() -> {
+            // Log del movimiento antes de registrar
+            Log.d("MovimientoRegistro", "Registrando localmente: " + movimiento.toString());
+
+            db.movimientoDao().insert(movimiento);
+            actualizarSaldosLocalmente(movimiento);
+
+            runOnUiThread(() -> {
+                Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado localmente", Toast.LENGTH_SHORT).show();
+                Log.d("MovimientoRegistro", "Movimiento registrado localmente: " + movimiento.toString());
+            });
+        }).start();
     }
+    private void actualizarSaldosEnApi(Movimiento movimiento) {
+        new Thread(() -> {
+            try {
+                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId());
+                if (movimiento.getTipo().equals("Ingreso")) {
+                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
+                } else if (movimiento.getTipo().equals("Gasto")) {
+                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
+                } else if (movimiento.getTipo().equals("Transferencia")) {
+                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId());
+                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
+                    cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
+                    db.cuentaDao().update(cuentaDestino);
 
-    private String obtenerTipoMovimiento() {
-        if (rbIngreso.isChecked()) {
-            return "Ingreso";
-        } else if (rbGasto.isChecked()) {
-            return "Gasto";
-        } else if (rbTransferencia.isChecked()){
-            return "Transferencia";
-        } else {
-            return null;
-        }
-    }
+                    // Llamada a la API para actualizar saldo de cuenta destino
+                    financeService.actualizarCuenta(cuentaDestino.getId(), cuentaDestino).enqueue(new Callback<Cuenta>() {
+                        @Override
+                        public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                            if (!response.isSuccessful()) {
+                                Log.d("ActualizarSaldo", "Error al sincronizar saldo de cuenta destino en la API: " + cuentaDestino.toString());
+                            }
+                        }
 
-    private void actualizarSaldoCuenta(Movimiento movimiento) {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        int cuentaId = movimiento.getCuentaId();
-        double montoMovimiento = movimiento.getMonto();
-        String tipoMovimiento = movimiento.getTipo();
+                        @Override
+                        public void onFailure(Call<Cuenta> call, Throwable t) {
+                            Log.d("ActualizarSaldo", "Fallo al sincronizar saldo de cuenta destino en la API: " + t.getMessage());
+                        }
+                    });
+                }
+                db.cuentaDao().update(cuentaOrigen);
 
-        api.getCuentaById(cuentaId).enqueue(new Callback<Cuenta>() {
-            @Override
-            public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
-                if (response.isSuccessful()) {
-                    Cuenta cuenta = response.body();
-                    double nuevoSaldo;
-
-                    if (tipoMovimiento.equals("Ingreso")) {
-                        nuevoSaldo = cuenta.getSaldo() + montoMovimiento;
-                    } else if (tipoMovimiento.equals("Gasto")) {
-                        nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
-                    } else { // Transferencia
-                        int cuentaDestinoId = movimiento.getCuentaDestId();
-                        nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
-                        actualizarSaldoCuentaDestino(cuentaDestinoId, montoMovimiento);
+                // Llamada a la API para actualizar saldo de cuenta origen
+                financeService.actualizarCuenta(cuentaOrigen.getId(), cuentaOrigen).enqueue(new Callback<Cuenta>() {
+                    @Override
+                    public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                        if (!response.isSuccessful()) {
+                            Log.d("ActualizarSaldo", "Error al sincronizar saldo de cuenta origen en la API: " + cuentaOrigen.toString());
+                        }
                     }
 
-                    cuenta.setSaldo(nuevoSaldo);
-                    api.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
-                        @Override
-                        public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
-                            if (response.isSuccessful()) {
-                                // Saldo actualizado correctamente
-                            } else {
-                                Toast.makeText(NuevoMovimientoActivity.this, "Error al actualizar el saldo", Toast.LENGTH_SHORT).show();
-                            }
-                        }
+                    @Override
+                    public void onFailure(Call<Cuenta> call, Throwable t) {
+                        Log.d("ActualizarSaldo", "Fallo al sincronizar saldo de cuenta origen en la API: " + t.getMessage());
+                    }
+                });
 
-                        @Override
-                        public void onFailure(Call<Cuenta> call, Throwable t) {
-                            Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    Toast.makeText(NuevoMovimientoActivity.this, "Error al obtener la cuenta", Toast.LENGTH_SHORT).show();
-                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            @Override
-            public void onFailure(Call<Cuenta> call, Throwable t) {
-                Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-            }
-        });
+        }).start();
     }
 
-    private void actualizarSaldoCuentaDestino(int cuentaDestinoId, double monto) {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentaById(cuentaDestinoId).enqueue(new Callback<Cuenta>() {
-            @Override
-            public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
-                if (response.isSuccessful()) {
-                    Cuenta cuenta = response.body();
-                    double nuevoSaldo = cuenta.getSaldo() + monto;
-                    cuenta.setSaldo(nuevoSaldo);
-                    api.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
-                        @Override
-                        public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
-                            if (response.isSuccessful()) {
-                                // Saldo de la cuenta destino actualizado correctamente
-                            } else {
-                                Toast.makeText(NuevoMovimientoActivity.this, "Error al actualizar el saldo de la cuenta destino", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<Cuenta> call, Throwable t) {
-                            Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    Toast.makeText(NuevoMovimientoActivity.this, "Error al obtener la cuenta destino", Toast.LENGTH_SHORT).show();
+    private void actualizarSaldosLocalmente(Movimiento movimiento) {
+        new Thread(() -> {
+            try {
+                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId());
+                if (movimiento.getTipo().equals("Ingreso")) {
+                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
+                } else if (movimiento.getTipo().equals("Gasto")) {
+                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
+                } else if (movimiento.getTipo().equals("Transferencia")) {
+                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId());
+                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
+                    cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
+                    db.cuentaDao().update(cuentaDestino);
                 }
+                db.cuentaDao().update(cuentaOrigen);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            @Override
-            public void onFailure(Call<Cuenta> call, Throwable t) {
-                Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show();
-            }
-        });
+        }).start();
     }
 
-    private void actualizarSaldoCuentaLocalmente(Movimiento movimiento) {
-        int cuentaId = movimiento.getCuentaId();
-        double montoMovimiento = movimiento.getMonto();
-        String tipoMovimiento = movimiento.getTipo();
+    private boolean validarCampos() {
+        String descripcion = etDescripcion.getText().toString();
+        String montoStr = etMonto.getText().toString();
+        Cuenta cuentaOrigen = (Cuenta) spinnerCuenta.getSelectedItem();
+        Categoria categoria = (Categoria) spinnerCategoria.getSelectedItem();
 
-        Cuenta cuenta = db.cuentaDao().getCuentaById(cuentaId);
-        double nuevoSaldo;
-
-        if (tipoMovimiento.equals("Ingreso")) {
-            nuevoSaldo = cuenta.getSaldo() + montoMovimiento;
-        } else if (tipoMovimiento.equals("Gasto")) {
-            nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
-        } else { // Transferencia
-            int cuentaDestinoId = movimiento.getCuentaDestId();
-            nuevoSaldo = cuenta.getSaldo() - montoMovimiento;
-            actualizarSaldoCuentaDestinoLocalmente(cuentaDestinoId, montoMovimiento);
+        if (TextUtils.isEmpty(descripcion) || TextUtils.isEmpty(montoStr)) {
+            Toast.makeText(this, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
+            return false;
         }
 
-        cuenta.setSaldo(nuevoSaldo);
-        db.cuentaDao().update(cuenta);
+        if (cuentaOrigen == null || cuentaOrigen.getId() == NO_CUENTA_SELECCIONADA) {
+            Toast.makeText(this, "Debe seleccionar una cuenta", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (categoria == null || categoria.getId() == NO_CUENTA_SELECCIONADA) {
+            Toast.makeText(this, "Debe seleccionar una categoría", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        double monto = Double.parseDouble(montoStr);
+
+        if (rbGasto.isChecked() || rbTransferencia.isChecked()) {
+            if (monto > cuentaOrigen.getSaldo()) {
+                Toast.makeText(this, "El monto no puede superar el saldo de la cuenta origen", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        }
+
+        if (rbTransferencia.isChecked()) {
+            Cuenta cuentaDestino = (Cuenta) spinnerCuentaDestino.getSelectedItem();
+            if (cuentaDestino == null || cuentaDestino.getId() == NO_CUENTA_SELECCIONADA) {
+                Toast.makeText(this, "Debe seleccionar una cuenta destino", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    private void actualizarSaldoCuentaDestinoLocalmente(int cuentaDestinoId, double monto) {
-        Cuenta cuentaDestino = db.cuentaDao().getCuentaById(cuentaDestinoId);
-        double nuevoSaldo = cuentaDestino.getSaldo() + monto;
-        cuentaDestino.setSaldo(nuevoSaldo);
-        db.cuentaDao().update(cuentaDestino);
-    }
+
 }

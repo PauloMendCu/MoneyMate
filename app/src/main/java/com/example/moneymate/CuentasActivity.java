@@ -16,8 +16,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import adapters.CuentaAdapter;
+import dao.MovimientoDao;
 import entities.AppDatabase;
 import entities.Cuenta;
 import entities.Movimiento;
@@ -102,32 +105,30 @@ public class CuentasActivity extends AppCompatActivity {
     }
 
     private void fetchResumen() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
-            @Override
-            public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
-                if (response.isSuccessful()) {
-                    List<Movimiento> movimientos = response.body();
-                    double ingresosTotales = 0;
-                    double gastosTotales = 0;
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(this);
+            MovimientoDao movimientoDao = db.movimientoDao();
 
-                    for (Movimiento movimiento : movimientos) {
-                        if (movimiento.getTipo().equals("Ingreso") || movimiento.getTipo().equals("Transferencia")) {
-                            ingresosTotales += movimiento.getMonto();
-                        } else if (movimiento.getTipo().equals("Gasto")) {
-                            gastosTotales += movimiento.getMonto();
-                        }
-                    }
+            List<Movimiento> movimientos = movimientoDao.getAllMovimientos();
+            double ingresosTotales = 0;
+            double gastosTotales = 0;
 
-                    tvIngresosTotalesMonto.setText(String.format("S/.%.2f", ingresosTotales));
-                    tvGastosTotalesMonto.setText(String.format("S/.%.2f", gastosTotales));
+            for (Movimiento movimiento : movimientos) {
+                if (movimiento.getTipo().equals("Ingreso") || movimiento.getTipo().equals("Transferencia")) {
+                    ingresosTotales += movimiento.getMonto();
+                } else if (movimiento.getTipo().equals("Gasto")) {
+                    gastosTotales += movimiento.getMonto();
                 }
             }
 
-            @Override
-            public void onFailure(Call<List<Movimiento>> call, Throwable t) {
-                Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
+            double finalIngresosTotales = ingresosTotales;
+            double finalGastosTotales = gastosTotales;
+
+            runOnUiThread(() -> {
+                tvIngresosTotalesMonto.setText(String.format("S/.%.2f", finalIngresosTotales));
+                tvGastosTotalesMonto.setText(String.format("S/.%.2f", finalGastosTotales));
+            });
         });
     }
 

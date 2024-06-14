@@ -20,8 +20,6 @@ public class Cuenta {
 
     @ColumnInfo(name = "is_synced")
     private boolean isSynced;  // Nuevo campo
-
-
     public Cuenta(int id, String nombre, double saldo, int tipo, boolean isSynced) {
         this.id = id;
         this.nombre = nombre;
@@ -29,11 +27,9 @@ public class Cuenta {
         this.tipo = tipo;
         this.isSynced = isSynced;
     }
-
     public Cuenta() {
 
     }
-
     public int getId() {
         return id;
     }
@@ -72,5 +68,9 @@ public class Cuenta {
 
     public void setIsSynced(boolean isSynced) {
         this.isSynced = isSynced;
+    }
+    @Override
+    public String toString() {
+        return this.nombre; // Asegúrate de que `nombre` sea el atributo correcto que contiene el nombre de la cuenta
     }
 }
