@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -126,7 +127,11 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                 Movimiento movimiento = new Movimiento();
                 movimiento.setDescripcion(etDescripcion.getText().toString());
                 movimiento.setMonto(Double.parseDouble(etMonto.getText().toString()));
-                movimiento.setFecha(String.valueOf(selectedDate.getTimeInMillis()));
+
+                // Convertir la fecha seleccionada a un formato legible
+                SimpleDateFormat sdfTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                movimiento.setFecha(sdfTimestamp.format(selectedDate.getTime()));
+
                 movimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
                 movimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
                 if (rbIngreso.isChecked()) {
@@ -189,12 +194,26 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     }
 
 
+
     private boolean isInternetAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
+    private static class InsertMovimientoAsyncTask extends AsyncTask<Movimiento, Void, Void> {
+        private AppDatabase db;
+
+        InsertMovimientoAsyncTask(AppDatabase db) {
+            this.db = db;
+        }
+
+        @Override
+        protected Void doInBackground(Movimiento... movimientos) {
+            db.movimientoDao().insert(movimientos[0]);
+            return null;
+        }
+    }
 
     private void registrarMovimientoEnApi(Movimiento movimiento) {
         new Thread(() -> {
@@ -209,7 +228,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                         Movimiento movimientoResponse = response.body();
                         if (movimientoResponse != null) {
                             movimiento.setId(movimientoResponse.getId());
-                            db.movimientoDao().insert(movimiento);
+                            new InsertMovimientoAsyncTask(db).execute(movimiento);
 
                             // Actualizar saldos de las cuentas
                             actualizarSaldosEnApi(movimiento);
@@ -220,7 +239,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                         }
                     } else {
                         movimiento.setIsSynced(false);
-                        db.movimientoDao().insert(movimiento);
+                        new InsertMovimientoAsyncTask(db).execute(movimiento);
                         runOnUiThread(() -> Toast.makeText(NuevoMovimientoActivity.this, "Error al registrar en la API", Toast.LENGTH_SHORT).show());
                     }
                 }
@@ -228,7 +247,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Call<Movimiento> call, Throwable t) {
                     movimiento.setIsSynced(false);
-                    db.movimientoDao().insert(movimiento);
+                    new InsertMovimientoAsyncTask(db).execute(movimiento);
                     runOnUiThread(() -> Toast.makeText(NuevoMovimientoActivity.this, "Error de conexión", Toast.LENGTH_SHORT).show());
                 }
             });
@@ -240,7 +259,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             // Log del movimiento antes de registrar
             Log.d("MovimientoRegistro", "Registrando localmente: " + movimiento.toString());
 
-            db.movimientoDao().insert(movimiento);
+            new InsertMovimientoAsyncTask(db).execute(movimiento);
             actualizarSaldosLocalmente(movimiento);
 
             runOnUiThread(() -> {
@@ -249,6 +268,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             });
         }).start();
     }
+
     private void actualizarSaldosEnApi(Movimiento movimiento) {
         new Thread(() -> {
             try {

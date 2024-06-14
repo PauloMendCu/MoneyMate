@@ -15,10 +15,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -136,6 +139,27 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
     }
 
+    private String convertirFechaALegible(String fecha) {
+        if (fecha.matches("\\d+")) {
+            try {
+                long tiempo = Long.parseLong(fecha);
+                Date date = new Date(tiempo);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                return sdf.format(date);
+            } catch (NumberFormatException e) {
+                Log.e("MovimientosPorCuentaActivity", "Error al convertir timestamp: " + fecha, e);
+                return null;
+            }
+        } else if (fecha.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+            // Si la fecha ya está en el formato legible, úsala tal cual
+            return fecha;
+        } else {
+            Log.e("MovimientosPorCuentaActivity", "Formato de fecha incorrecto: " + fecha);
+            return null;
+        }
+    }
+
+
     private void configurarSpinnerCategoria() {
         // Configurar el adaptador y el listener del spinner
         ArrayAdapter<String> adapterSpinner = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
@@ -164,16 +188,35 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
     private void actualizarMovimientos() {
         adapter.updateMovimientos(movimientosFiltrados.stream()
                 .filter(movimiento -> {
-                    String[] partesFecha = movimiento.getFecha().split("-");
-                    int mes = Integer.parseInt(partesFecha[1]);
-                    int ano = Integer.parseInt(partesFecha[0]);
+                    String fecha = convertirFechaALegible(movimiento.getFecha());
+                    if (fecha == null) {
+                        return false;
+                    }
+
+                    String[] partesFecha = fecha.split("-");
+                    if (partesFecha.length < 2) {
+                        Log.e("MovimientosPorCuentaActivity", "Formato de fecha incorrecto: " + fecha);
+                        return false;
+                    }
+
+                    int mes, ano;
+                    try {
+                        mes = Integer.parseInt(partesFecha[1]);
+                        ano = Integer.parseInt(partesFecha[0]);
+                    } catch (NumberFormatException e) {
+                        Log.e("MovimientosPorCuentaActivity", "Error al convertir fecha: " + fecha, e);
+                        return false;
+                    }
+
                     return (mes == mesSeleccionado && ano == anoSeleccionado) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
                 })
                 .collect(Collectors.toList()));
+
         TextView tvMesAno = findViewById(R.id.tv_mes_ano);
         String mesAnoTexto = String.format("%02d/%04d", mesSeleccionado, anoSeleccionado);
         tvMesAno.setText(mesAnoTexto);
     }
+
 
     private void filtrarMovimientosPorCategoria() {
         Pair<Integer, Integer> mesYAno = obtenerMesYAnoActuales();
@@ -182,13 +225,33 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
         adapter.updateMovimientos(movimientosFiltrados.stream()
                 .filter(movimiento -> {
-                    String[] partesFecha = movimiento.getFecha().split("-");
-                    int mes = Integer.parseInt(partesFecha[1]);
-                    int ano = Integer.parseInt(partesFecha[0]);
+                    String fecha = convertirFechaALegible(movimiento.getFecha());
+                    if (fecha == null) {
+                        return false;
+                    }
+
+                    String[] partesFecha = fecha.split("-");
+                    if (partesFecha.length < 2) {
+                        Log.e("MovimientosPorCuentaActivity", "Formato de fecha incorrecto: " + fecha);
+                        return false;
+                    }
+
+                    int mes, ano;
+                    try {
+                        mes = Integer.parseInt(partesFecha[1]);
+                        ano = Integer.parseInt(partesFecha[0]);
+                    } catch (NumberFormatException e) {
+                        Log.e("MovimientosPorCuentaActivity", "Error al convertir fecha: " + fecha, e);
+                        return false;
+                    }
+
                     return (mes == mesActual && ano == anoActual) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
                 })
                 .collect(Collectors.toList()));
     }
+
+
+
 
     private void fetchMovimientosPorCuenta(int cuentaId) {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
