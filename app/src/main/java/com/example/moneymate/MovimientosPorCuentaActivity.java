@@ -10,13 +10,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -24,18 +19,18 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import adapters.MovimientoAdapter;
+import dao.CategoriaDao;
+import dao.CuentaDao;
+import dao.MovimientoDao;
+import entities.AppDatabase;
 import entities.Categoria;
 import entities.Cuenta;
 import entities.Movimiento;
-import entities.RetrofitClient;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import services.ICategoriaService;
-import services.IFinanceService;
 
 public class MovimientosPorCuentaActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
@@ -126,11 +121,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
         });
 
 
-        fetchCuentas();
-        fetchCategorias();
-
-        inicializarCuentas();
-        inicializarCategorias();
+        cargarDatosLocales();
 
         adapter = new MovimientoAdapter(movimientosFiltrados, cuentas, categorias);
         recyclerView.setAdapter(adapter);
@@ -169,6 +160,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             }
         });
     }
+
     private void actualizarMovimientos() {
         adapter.updateMovimientos(movimientosFiltrados.stream()
                 .filter(movimiento -> {
@@ -196,118 +188,51 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
                     return (mes == mesActual && ano == anoActual) && (categoriaSeleccionada == -1 || movimiento.getCategoriaId() == categoriaSeleccionada);
                 })
                 .collect(Collectors.toList()));
-
-
     }
 
     private void fetchMovimientosPorCuenta(int cuentaId) {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
-            @Override
-            public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
-                if (response.isSuccessful()) {
-                    movimientosFiltrados.clear();
-                    List<Movimiento> movimientosRecibidos = response.body();
-                    for (Movimiento movimiento : movimientosRecibidos) {
-                        if (movimiento.getCuentaId() == cuentaId || (movimiento.getTipo().equals("Transferencia") && movimiento.getCuentaDestId() == cuentaId)) {
-                            movimientosFiltrados.add(movimiento);
-                        }
-                    }
-                    Collections.sort(movimientosFiltrados, Movimiento.ordenarPorFechaDescendente);
-                    filtrarMovimientosPorCategoria();
-                }
-            }
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(this);
+            MovimientoDao movimientoDao = db.movimientoDao();
 
-            @Override
-            public void onFailure(Call<List<Movimiento>> call, Throwable t) {
-                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
+            List<Movimiento> movimientos = movimientoDao.getMovimientosPorCuenta(cuentaId);
+            movimientosFiltrados.clear();
+            movimientosFiltrados.addAll(movimientos);
+
+            runOnUiThread(() -> {
+                Collections.sort(movimientosFiltrados, Movimiento.ordenarPorFechaDescendente);
+                filtrarMovimientosPorCategoria();
+            });
         });
     }
-    private void fetchCategorias() {
-        ICategoriaService categoriaApi = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
-        categoriaApi.getCategorias().enqueue(new Callback<List<Categoria>>() {
-            @Override
-            public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
-                if (response.isSuccessful()) {
-                    categorias.clear();
+    private void cargarDatosLocales() {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(this);
+            CuentaDao cuentaDao = db.cuentaDao();
+            CategoriaDao categoriaDao = db.categoriaDao();
 
-                    ArrayAdapter<String> adapterSpinner = (ArrayAdapter<String>) spinnerCategoria.getAdapter();
-                    adapterSpinner.clear();
-                    adapterSpinner.add("Todas las categorías");
+            cuentas.clear();
+            cuentas.addAll(cuentaDao.getAllCuentas());
 
-                    categorias.addAll(response.body());
+            categorias.clear();
+            categorias.addAll(categoriaDao.getAllCategorias());
 
-                    for (Categoria categoria : categorias) {
-                        adapterSpinner.add(categoria.getNombre());
-                    }
-                    adapterSpinner.notifyDataSetChanged();
-
-                    filtrarMovimientosPorCategoria();
-                    actualizarMovimientos();
+            runOnUiThread(() -> {
+                ArrayAdapter<String> adapterSpinner = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
+                adapterSpinner.add("Todas las categorías");
+                for (Categoria categoria : categorias) {
+                    adapterSpinner.add(categoria.getNombre());
                 }
-            }
+                spinnerCategoria.setAdapter(adapterSpinner);
+                adapterSpinner.notifyDataSetChanged();
 
-            @Override
-            public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void fetchCuentas() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-            @Override
-            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                if (response.isSuccessful()) {
-                    cuentas = response.body();
-                    adapter = new MovimientoAdapter(movimientosFiltrados, cuentas, categorias);
-                    recyclerView.setAdapter(adapter);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void inicializarCuentas() {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
-            @Override
-            public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
-                if (response.isSuccessful()) {
-                    cuentas = response.body();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void inicializarCategorias() {
-        ICategoriaService categoriaApi = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
-        categoriaApi.getCategorias().enqueue(new Callback<List<Categoria>>() {
-            @Override
-            public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
-                if (response.isSuccessful()) {
-                    categorias = response.body();
-                }
                 actualizarMovimientos();
-            }
-
-            @Override
-            public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                Toast.makeText(MovimientosPorCuentaActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
-            }
+            });
         });
     }
+
 
     private Pair<Integer, Integer> obtenerMesYAnoActuales() {
         Calendar calendar = Calendar.getInstance();
