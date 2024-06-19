@@ -13,7 +13,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,7 +20,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -233,7 +231,7 @@ public class MovimientosActivity extends AppCompatActivity {
                                 Log.d("Sync", "Procesando categoría: " + categoria.getNombre());
                                 categoria.setIsSynced(true);
                                 // Verificar si la categoría ya existe antes de insertarla
-                                Categoria categoriaExistente = categoriaDao.getCategoriaById(categoria.getId());
+                                Categoria categoriaExistente = categoriaDao.getCategoriaById(categoria.getId(), "asd");
                                 if (categoriaExistente == null) {
                                     categoriaDao.insert(categoria);
                                     Log.d("Sync", "Categoría insertada: " + categoria.getNombre());
@@ -321,7 +319,7 @@ public class MovimientosActivity extends AppCompatActivity {
                             for (Movimiento movimiento : movimientosServidor) {
                                 movimiento.setIsSynced(true);
                                 // Verificar si el movimiento ya existe antes de insertarlo
-                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId());
+                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId(), "asd");
                                 if (movimientoExistente == null) {
                                     movimientoDao.insert(movimiento);
                                 } else {
@@ -400,7 +398,7 @@ public class MovimientosActivity extends AppCompatActivity {
                             for (Cuenta cuenta : cuentasServidor) {
                                 cuenta.setIsSynced(true);
                                 // Verificar si la cuenta ya existe antes de insertarla
-                                Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId());
+                                Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId(), "asd");
                                 if (cuentaExistente == null) {
                                     cuentaDao.insert(cuenta);
                                 } else {

@@ -23,7 +23,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -272,13 +271,13 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private void actualizarSaldosEnApi(Movimiento movimiento) {
         new Thread(() -> {
             try {
-                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId());
+                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), "asd");
                 if (movimiento.getTipo().equals("Ingreso")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Gasto")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Transferencia")) {
-                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId());
+                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId(), "asd");
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                     cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
                     db.cuentaDao().update(cuentaDestino);
@@ -324,13 +323,13 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private void actualizarSaldosLocalmente(Movimiento movimiento) {
         new Thread(() -> {
             try {
-                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId());
+                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), "asd");
                 if (movimiento.getTipo().equals("Ingreso")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Gasto")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Transferencia")) {
-                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId());
+                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId(), "asd");
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                     cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
                     db.cuentaDao().update(cuentaDestino);

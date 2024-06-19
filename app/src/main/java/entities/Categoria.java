@@ -6,19 +6,21 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "categorias")
 public class Categoria {
-    @PrimaryKey
-    private int id;
-
+    @PrimaryKey(autoGenerate = true)
+    public int id;
     @ColumnInfo(name = "nombre")
-    private String nombre;
-    private boolean isSynced;
+    public String nombre;
+
+    public String userId;  // Nuevo campo para el ID del usuario
+    public boolean isSynced;
 
     public Categoria() {
     }
 
-    public Categoria(int id, String nombre, boolean isSynced) {
+    public Categoria(int id, String nombre, String userId, boolean isSynced) {
         this.id = id;
         this.nombre = nombre;
+        this.userId = userId;
         this.isSynced = isSynced;
     }
 
@@ -44,6 +46,14 @@ public class Categoria {
 
     public void setIsSynced(boolean isSynced) {
         this.isSynced = isSynced;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     @Override

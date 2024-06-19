@@ -16,6 +16,9 @@ import entities.Movimiento;
 public interface MovimientoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(Movimiento movimiento);
+
+    @Query("SELECT * FROM movimientos WHERE userId = :userId")
+    List<Movimiento> getAllByUser(String userId);
     @Query("SELECT * FROM movimientos WHERE isSynced = 0")
     List<Movimiento> getMovimientosNoSincronizados();
     @Update
@@ -24,8 +27,8 @@ public interface MovimientoDao {
     List<Movimiento> getMovimientosPorCuenta(int cuentaId);
     @Delete
     void delete(Movimiento movimiento);
-    @Query("SELECT * FROM movimientos WHERE id = :id LIMIT 1")
-    Movimiento getMovimientoById(int id);
+    @Query("SELECT * FROM movimientos WHERE id = :id AND userId = :userId")
+    Movimiento getMovimientoById(int id, String userId);
 
     @Transaction
     default void insertOrUpdate(Movimiento movimiento) {
