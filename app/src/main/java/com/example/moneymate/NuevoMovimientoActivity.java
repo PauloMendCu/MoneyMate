@@ -3,6 +3,7 @@ package com.example.moneymate;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -79,6 +81,26 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             }
         });
 
+        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, MovimientosActivity.class);
+            startActivity(intent);
+        });
+
+
+        // Botón para ver cuentas
+        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para registrar nuevo movimiento
+        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
+        btnNuevoMovimiento.setOnClickListener(v -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, NuevoMovimientoActivity.class);
+            startActivity(intent);
+        });
         etMonto.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
