@@ -269,10 +269,9 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                         Movimiento movimientoResponse = response.body();
                         if (movimientoResponse != null) {
                             movimiento.setId(movimientoResponse.getId());
+                            actualizarSaldos(movimiento); // Actualizar saldos de las cuentas
                             new InsertMovimientoAsyncTask(db).execute(movimiento);
 
-                            // Actualizar saldos de las cuentas
-                            actualizarSaldosEnApi(movimiento);
                             runOnUiThread(() -> {
                                 Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado", Toast.LENGTH_SHORT).show();
                                 Log.d("MovimientoRegistro", "Movimiento registrado en API y localmente: " + movimiento.toString());
@@ -300,8 +299,8 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             // Log del movimiento antes de registrar
             Log.d("MovimientoRegistro", "Registrando localmente: " + movimiento.toString());
 
+            actualizarSaldos(movimiento); // Actualizar saldos de las cuentas
             new InsertMovimientoAsyncTask(db).execute(movimiento);
-            actualizarSaldosLocalmente(movimiento);
 
             runOnUiThread(() -> {
                 Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado localmente", Toast.LENGTH_SHORT).show();
@@ -310,7 +309,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void actualizarSaldosEnApi(Movimiento movimiento) {
+    private void actualizarSaldos(Movimiento movimiento) {
         new Thread(() -> {
             try {
                 Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), "asd");
@@ -356,27 +355,6 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                     }
                 });
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-    private void actualizarSaldosLocalmente(Movimiento movimiento) {
-        new Thread(() -> {
-            try {
-                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), "asd");
-                if (movimiento.getTipo().equals("Ingreso")) {
-                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
-                } else if (movimiento.getTipo().equals("Gasto")) {
-                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
-                } else if (movimiento.getTipo().equals("Transferencia")) {
-                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId(), "asd");
-                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
-                    cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
-                    db.cuentaDao().update(cuentaDestino);
-                }
-                db.cuentaDao().update(cuentaOrigen);
             } catch (Exception e) {
                 e.printStackTrace();
             }
