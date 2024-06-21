@@ -35,7 +35,6 @@ public class NuevaCuentaActivity extends AppCompatActivity {
     private RadioButton rbCuentaDebito, rbCuentaCredito;
     private AppDatabase db;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,63 +48,43 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         rgTipoCuenta = findViewById(R.id.rg_tipo_cuenta);
         rbCuentaDebito = findViewById(R.id.rb_cuenta_debito);
         rbCuentaCredito = findViewById(R.id.rb_cuenta_credito);
-        etNombreCuenta = findViewById(R.id.etMontoCuenta);
-        etSaldoCuenta = findViewById(R.id.etSaldoCuenta);
 
-        rgTipoCuenta.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                if (checkedId == R.id.rb_cuenta_debito) {
-                    etSaldoCuenta.setHint("Saldo inicial");
-                } else if (checkedId == R.id.rb_cuenta_credito) {
-                    etSaldoCuenta.setHint("Línea de crédito");
-                }
+        rgTipoCuenta.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.rb_cuenta_debito) {
+                etSaldoCuenta.setHint("Saldo inicial");
+            } else if (checkedId == R.id.rb_cuenta_credito) {
+                etSaldoCuenta.setHint("Línea de crédito");
             }
         });
 
-
         // Botón para ver movimientos
         ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
-        btnVerMovimientos.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(NuevaCuentaActivity.this, MovimientosActivity.class);
-                startActivity(intent);
-            }
+        btnVerMovimientos.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevaCuentaActivity.this, MovimientosActivity.class);
+            startActivity(intent);
         });
 
         // Botón para ver cuentas
         ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
-        btnVerCuentas.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(NuevaCuentaActivity.this, CuentasActivity.class);
-                startActivity(intent);
-            }
+        btnVerCuentas.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevaCuentaActivity.this, CuentasActivity.class);
+            startActivity(intent);
         });
 
         // Botón para registrar nuevo movimiento
         ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
-        btnNuevoMovimiento.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(NuevaCuentaActivity.this, NuevoMovimientoActivity.class);
-                startActivity(intent);
-            }
+        btnNuevoMovimiento.setOnClickListener(v -> {
+            Intent intent = new Intent(NuevaCuentaActivity.this, NuevoMovimientoActivity.class);
+            startActivity(intent);
         });
 
-        btnGuardar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                guardarCuenta();
-            }
-        });
+        btnGuardar.setOnClickListener(v -> guardarCuenta());
     }
+
     private void guardarCuenta() {
         String nombreCuenta = etNombreCuenta.getText().toString().trim();
         String saldoString = etSaldoCuenta.getText().toString().trim();
         int tipoCuenta = rbCuentaDebito.isChecked() ? 1 : 2; // 1 para débito, 2 para crédito
-
 
         // Validaciones
         if (nombreCuenta.isEmpty()) {
@@ -139,8 +118,6 @@ public class NuevaCuentaActivity extends AppCompatActivity {
             nuevaCuenta.setIsSynced(false);
             guardarCuentaLocalmente(nuevaCuenta);
         }
-
-
     }
 
     private boolean isNetworkAvailable() {
@@ -148,12 +125,13 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
+
     private void guardarCuentaEnServidor(Cuenta nuevaCuenta) {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
         api.crearCuenta(nuevaCuenta).enqueue(new Callback<Cuenta>() {
             @Override
             public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
-                if (response.isSuccessful()) {
+                if (response.isSuccessful() && response.body() != null) {
                     Cuenta cuentaCreada = response.body();
                     Toast.makeText(NuevaCuentaActivity.this, "Cuenta creada correctamente", Toast.LENGTH_SHORT).show();
 
@@ -201,7 +179,6 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         });
     }
 
-
     private void crearMovimientoSaldoInicial(Cuenta nuevaCuenta, boolean isSynced) {
         Movimiento movimientoSaldoInicial = new Movimiento();
         movimientoSaldoInicial.setDescripcion("Saldo inicial");
@@ -218,7 +195,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
             api.agregarMovimiento(movimientoSaldoInicial).enqueue(new Callback<Movimiento>() {
                 @Override
                 public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                    if (response.isSuccessful()) {
+                    if (response.isSuccessful() && response.body() != null) {
                         Movimiento movimientoCreado = response.body();
                         movimientoCreado.setIsSynced(true);
                         guardarMovimientoLocalmente(movimientoCreado);
@@ -244,6 +221,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
             db.movimientoDao().insert(movimiento);
         });
     }
+
     private String obtenerFechaActual() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         return sdf.format(new Date());

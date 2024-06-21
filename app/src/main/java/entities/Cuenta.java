@@ -68,6 +68,7 @@ public class Cuenta {
         this.userId = userId;
     }
 
+    // Getters y Setters para isSynced
     public boolean isSynced() {
         return isSynced;
     }

@@ -275,15 +275,20 @@ public class MovimientosActivity extends AppCompatActivity {
         });
     }
 
+    // Método para obtener movimientos por ID
+    private Movimiento getMovimientoById(int id) {
+        MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
+        return movimientoDao.getMovimientoById(id, "userId");  // Aquí debes pasar el ID del usuario o algún valor adecuado
+    }
+
+    // Modificación en la sincronización
     private void sincronizarMovimientos() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
         IFinanceService apiService = RetrofitClient.getInstance().create(IFinanceService.class);
 
-        // Obtener movimientos no sincronizados localmente
         List<Movimiento> movimientosNoSincronizados = movimientoDao.getMovimientosNoSincronizados();
 
-        // Sincronizar movimientos locales con el servidor
         if (!movimientosNoSincronizados.isEmpty()) {
             for (Movimiento movimiento : movimientosNoSincronizados) {
                 apiService.agregarMovimiento(movimiento).enqueue(new Callback<Movimiento>() {
@@ -308,7 +313,6 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         }
 
-        // Obtener movimientos del servidor y sincronizar con la base de datos local
         apiService.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
             @Override
             public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
@@ -318,28 +322,12 @@ public class MovimientosActivity extends AppCompatActivity {
                         executorService.execute(() -> {
                             for (Movimiento movimiento : movimientosServidor) {
                                 movimiento.setIsSynced(true);
-                                // Verificar si el movimiento ya existe antes de insertarlo
-                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId(), "asd");
+                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId(), "userId"); // Ajustar la llamada
                                 if (movimientoExistente == null) {
                                     movimientoDao.insert(movimiento);
                                 } else {
                                     movimientoDao.update(movimiento);
                                 }
-                            }
-
-                            // Actualizar movimientos en el servidor como sincronizados
-                            for (Movimiento movimiento : movimientosServidor) {
-                                apiService.actualizarMovimiento(movimiento.getId(), movimiento).enqueue(new Callback<Movimiento>() {
-                                    @Override
-                                    public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                                        // Movimiento actualizado correctamente en el servidor
-                                    }
-
-                                    @Override
-                                    public void onFailure(Call<Movimiento> call, Throwable t) {
-                                        // Manejar error
-                                    }
-                                });
                             }
                         });
                     }
@@ -352,6 +340,8 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
 
     private void sincronizarCuentas() {

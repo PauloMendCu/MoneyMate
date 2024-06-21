@@ -123,33 +123,48 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         btnGuardar.setOnClickListener(v -> {
             if (validarCampos()) {
-                Movimiento movimiento = new Movimiento();
-                movimiento.setDescripcion(etDescripcion.getText().toString());
-                movimiento.setMonto(Double.parseDouble(etMonto.getText().toString()));
+                Movimiento nuevoMovimiento = new Movimiento();
+                nuevoMovimiento.setDescripcion(etDescripcion.getText().toString());
+                nuevoMovimiento.setMonto(Double.parseDouble(etMonto.getText().toString()));
 
                 // Convertir la fecha seleccionada a un formato legible
                 SimpleDateFormat sdfTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                movimiento.setFecha(sdfTimestamp.format(selectedDate.getTime()));
+                nuevoMovimiento.setFecha(sdfTimestamp.format(selectedDate.getTime()));
 
-                movimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
-                movimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
+                nuevoMovimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
+                nuevoMovimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
                 if (rbIngreso.isChecked()) {
-                    movimiento.setTipo("Ingreso");
+                    nuevoMovimiento.setTipo("Ingreso");
                 } else if (rbGasto.isChecked()) {
-                    movimiento.setTipo("Gasto");
+                    nuevoMovimiento.setTipo("Gasto");
                 } else if (rbTransferencia.isChecked()) {
-                    movimiento.setTipo("Transferencia");
-                    movimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
+                    nuevoMovimiento.setTipo("Transferencia");
+                    nuevoMovimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
                 }
-                if (isInternetAvailable()) {
-                    movimiento.setIsSynced(true);
-                    registrarMovimientoEnApi(movimiento);
+
+                if (isNetworkAvailable()) {
+                    financeService.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
+                        @Override
+                        public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
+                            if (response.isSuccessful()) {
+                                Movimiento movimientoSincronizado = response.body();
+                                movimientoSincronizado.setIsSynced(true);
+                                db.movimientoDao().insert(movimientoSincronizado);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Movimiento> call, Throwable t) {
+                            // Manejar error
+                        }
+                    });
                 } else {
-                    movimiento.setIsSynced(false);
-                    registrarMovimientoLocalmente(movimiento);
+                    nuevoMovimiento.setIsSynced(false);
+                    db.movimientoDao().insert(nuevoMovimiento);
                 }
             }
         });
+
     }
 
     private class LoadDataAsyncTask extends AsyncTask<Void, Void, Void> {
@@ -158,7 +173,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            cuentas = db.cuentaDao().getAll();
+            cuentas = db.cuentaDao().getAllCuentas();
             categorias = db.categoriaDao().getAllCategorias();
 
             // Agregar elementos predeterminados
@@ -192,9 +207,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         }
     }
 
-
-
-    private boolean isInternetAvailable() {
+    private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
@@ -381,6 +394,4 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         return true;
     }
-
-
 }

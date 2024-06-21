@@ -54,7 +54,8 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:2.5.0")
     implementation("androidx.room:room-ktx:2.5.0")
     androidTestImplementation("androidx.room:room-testing:2.5.0")
-
+    implementation ("androidx.room:room-runtime:2.4.3")
+    annotationProcessor ("androidx.room:room-compiler:2.4.3")
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-auth")
 

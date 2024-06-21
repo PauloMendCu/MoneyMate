@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import adapters.CuentaAdapter;
+import dao.CuentaDao;
 import dao.MovimientoDao;
 import entities.AppDatabase;
 import entities.Cuenta;
@@ -41,6 +42,10 @@ public class CuentasActivity extends AppCompatActivity {
     private TextView tvIngresosTotalesTexto;
     private TextView tvGastosTotalesMonto;
     private TextView tvGastosTotalesTexto;
+
+    private ExecutorService executorService;
+    private AppDatabase db;
+    private IFinanceService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +98,10 @@ public class CuentasActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        executorService = Executors.newSingleThreadExecutor();
+        db = AppDatabase.getInstance(this);
+        apiService = RetrofitClient.getInstance().create(IFinanceService.class);
+
         cargarDatosLocales();
         fetchResumen();
     }
@@ -105,11 +114,8 @@ public class CuentasActivity extends AppCompatActivity {
     }
 
     private void fetchResumen() {
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorService.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(this);
             MovimientoDao movimientoDao = db.movimientoDao();
-
             List<Movimiento> movimientos = movimientoDao.getAllMovimientos();
             double ingresosTotales = 0;
             double gastosTotales = 0;
@@ -132,123 +138,114 @@ public class CuentasActivity extends AppCompatActivity {
         });
     }
 
+    // Método para obtener cuentas por ID
+    private Cuenta getCuentaById(int id) {
+        CuentaDao cuentaDao = db.cuentaDao();
+        return cuentaDao.getCuentaById(id, "userId");  // Aquí debes pasar el ID del usuario o algún valor adecuado
+    }
+
     private void sincronizarCuentas() {
-        if (isNetworkAvailable()) {
-            IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-            api.getCuentas().enqueue(new Callback<List<Cuenta>>() {
+        executorService.execute(() -> {
+            CuentaDao cuentaDao = db.cuentaDao();
+            List<Cuenta> cuentasNoSincronizadas = cuentaDao.getCuentasNoSincronizadas();
+
+            if (!cuentasNoSincronizadas.isEmpty()) {
+                for (Cuenta cuenta : cuentasNoSincronizadas) {
+                    apiService.crearCuenta(cuenta).enqueue(new Callback<Cuenta>() {
+                        @Override
+                        public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
+                            if (response.isSuccessful()) {
+                                Cuenta cuentaSincronizada = response.body();
+                                if (cuentaSincronizada != null) {
+                                    cuentaSincronizada.setIsSynced(true);
+                                    executorService.execute(() -> {
+                                        cuentaDao.insert(cuentaSincronizada);
+                                    });
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Cuenta> call, Throwable t) {
+                            // Manejar error
+                        }
+                    });
+                }
+            }
+
+            apiService.getCuentas().enqueue(new Callback<List<Cuenta>>() {
                 @Override
                 public void onResponse(Call<List<Cuenta>> call, Response<List<Cuenta>> response) {
                     if (response.isSuccessful()) {
-                        List<Cuenta> cuentasAPI = response.body();
-
-                        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-                            List<Cuenta> cuentasLocales = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getAllCuentas();
-                            List<Cuenta> cuentasLocalesNoSincronizadas = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getCuentasNoSincronizadas();
-
-                            // Sincronizar cuentas locales no sincronizadas con la API
-                            for (Cuenta cuentaLocal : cuentasLocalesNoSincronizadas) {
-                                guardarCuentaEnServidor(cuentaLocal);
-                            }
-
-                            // Identificar nuevas cuentas en la API que no están en local
-                            List<Cuenta> nuevasCuentasAPI = new ArrayList<>();
-                            for (Cuenta cuentaAPI : cuentasAPI) {
-                                boolean existeEnLocal = false;
-                                for (Cuenta cuentaLocal : cuentasLocales) {
-                                    if (cuentaLocal.getId() == cuentaAPI.getId()) {
-                                        existeEnLocal = true;
-                                        break;
+                        List<Cuenta> cuentasServidor = response.body();
+                        if (cuentasServidor != null) {
+                            executorService.execute(() -> {
+                                for (Cuenta cuenta : cuentasServidor) {
+                                    cuenta.setIsSynced(true);
+                                    Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId(), "userId"); // Ajustar la llamada
+                                    if (cuentaExistente == null) {
+                                        cuentaDao.insert(cuenta);
+                                    } else {
+                                        cuentaDao.update(cuenta);
                                     }
                                 }
-                                if (!existeEnLocal) {
-                                    nuevasCuentasAPI.add(cuentaAPI);
-                                }
-                            }
-
-                            // Sincronizar nuevas cuentas de la API con la base de datos local
-                            for (Cuenta cuentaAPI : nuevasCuentasAPI) {
-                                cuentaAPI.setIsSynced(true); // Marcar como sincronizada
-                                AppDatabase.getInstance(CuentasActivity.this).cuentaDao().insert(cuentaAPI);
-                                actualizarCuentaEnServidor(cuentaAPI); // Actualizar la cuenta en la API
-                            }
-
-                            // Marcar cuentas locales como sincronizadas
-                            for (Cuenta cuentaLocal : cuentasLocalesNoSincronizadas) {
-                                cuentaLocal.setIsSynced(true);
-                                AppDatabase.getInstance(CuentasActivity.this).cuentaDao().update(cuentaLocal);
-                            }
-
-                            // Actualizar la lista de cuentas locales
-                            List<Cuenta> cuentasActualizadas = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getAllCuentas();
-
-                            // Actualizar la interfaz de usuario en el hilo principal
-                            runOnUiThread(() -> {
-                                cuentas.clear();
-                                cuentas.addAll(cuentasActualizadas);
-                                adapter.notifyDataSetChanged();
-                                actualizarSaldoTotal();
                             });
-                        });
+                        }
                     }
                 }
 
                 @Override
                 public void onFailure(Call<List<Cuenta>> call, Throwable t) {
-                    Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                    // Manejar error
                 }
             });
-        } else {
-            cargarDatosLocales();
-        }
+        });
     }
 
-
     private void guardarCuentaEnServidor(Cuenta cuentaLocal) {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.crearCuenta(cuentaLocal).enqueue(new Callback<Cuenta>() {
+        apiService.crearCuenta(cuentaLocal).enqueue(new Callback<Cuenta>() {
             @Override
             public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
                 if (response.isSuccessful()) {
                     Cuenta cuentaCreada = response.body();
                     cuentaCreada.setIsSynced(true); // Marcar la cuenta como sincronizada en la API
                     actualizarCuentaEnServidor(cuentaCreada); // Actualizar la cuenta en la API
-                    AppDatabase.getDatabaseWriteExecutor().execute(() -> {
+                    executorService.execute(() -> {
                         cuentaLocal.setId(cuentaCreada.getId());
                         cuentaLocal.setIsSynced(true); // Marca la cuenta como sincronizada
-                        AppDatabase.getInstance(CuentasActivity.this).cuentaDao().update(cuentaLocal);
+                        db.cuentaDao().update(cuentaLocal);
                     });
                 } else {
-                    Toast.makeText(CuentasActivity.this, "Error al sincronizar la cuenta", Toast.LENGTH_SHORT).show();
+                    runOnUiThread(() -> Toast.makeText(CuentasActivity.this, "Error al sincronizar la cuenta", Toast.LENGTH_SHORT).show());
                 }
             }
 
             @Override
             public void onFailure(Call<Cuenta> call, Throwable t) {
-                Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show();
+                runOnUiThread(() -> Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor", Toast.LENGTH_SHORT).show());
             }
         });
     }
 
     private void actualizarCuentaEnServidor(Cuenta cuenta) {
-        IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
-        api.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
+        apiService.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
             @Override
             public void onResponse(Call<Cuenta> call, Response<Cuenta> response) {
                 if (!response.isSuccessful()) {
-                    Toast.makeText(CuentasActivity.this, "Error al actualizar la cuenta en el servidor", Toast.LENGTH_SHORT).show();
+                    runOnUiThread(() -> Toast.makeText(CuentasActivity.this, "Error al actualizar la cuenta en el servidor", Toast.LENGTH_SHORT).show());
                 }
             }
 
             @Override
             public void onFailure(Call<Cuenta> call, Throwable t) {
-                Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor para actualizar la cuenta", Toast.LENGTH_SHORT).show();
+                runOnUiThread(() -> Toast.makeText(CuentasActivity.this, "No se pudo conectar al servidor para actualizar la cuenta", Toast.LENGTH_SHORT).show());
             }
         });
     }
 
     private void cargarDatosLocales() {
-        AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-            List<Cuenta> cuentasLocales = AppDatabase.getInstance(CuentasActivity.this).cuentaDao().getAllCuentas();
+        executorService.execute(() -> {
+            List<Cuenta> cuentasLocales = db.cuentaDao().getAllCuentas();
             runOnUiThread(() -> {
                 cuentas.clear(); // Limpiar la lista antes de agregar las cuentas locales
                 cuentas.addAll(cuentasLocales);
@@ -272,5 +269,3 @@ public class CuentasActivity extends AppCompatActivity {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 }
-
-
