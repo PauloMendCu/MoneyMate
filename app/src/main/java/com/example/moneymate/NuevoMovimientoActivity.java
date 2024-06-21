@@ -34,6 +34,7 @@ import entities.RetrofitClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import services.ICategoriaService;
 import services.IFinanceService;
 
 public class NuevoMovimientoActivity extends AppCompatActivity {
@@ -45,6 +46,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private static final int NO_CUENTA_SELECCIONADA = -1;
     private Calendar selectedDate = Calendar.getInstance();
     private IFinanceService financeService;
+    private ICategoriaService categoriaService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,9 +66,10 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         btnSeleccionarFecha = findViewById(R.id.btn_seleccionar_fecha);
 
         db = AppDatabase.getInstance(this);
-        financeService = RetrofitClient.getInstance().create(IFinanceService.class);
+        financeService = RetrofitClient.getFinanceService();
+        categoriaService = RetrofitClient.getCategoriaService();
 
-        new LoadDataAsyncTask().execute();
+        sincronizarCategorias();
 
         rbTransferencia.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -143,28 +146,54 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                 }
 
                 if (isNetworkAvailable()) {
-                    financeService.agregarMovimiento(nuevoMovimiento).enqueue(new Callback<Movimiento>() {
-                        @Override
-                        public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                            if (response.isSuccessful()) {
-                                Movimiento movimientoSincronizado = response.body();
-                                movimientoSincronizado.setIsSynced(true);
-                                db.movimientoDao().insert(movimientoSincronizado);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<Movimiento> call, Throwable t) {
-                            // Manejar error
-                        }
-                    });
+                    registrarMovimientoEnApi(nuevoMovimiento);
                 } else {
-                    nuevoMovimiento.setIsSynced(false);
-                    db.movimientoDao().insert(nuevoMovimiento);
+                    registrarMovimientoLocalmente(nuevoMovimiento);
                 }
             }
         });
 
+        new LoadDataAsyncTask().execute();
+    }
+
+    private void sincronizarCategorias() {
+        if (isNetworkAvailable()) {
+            categoriaService.getCategorias().enqueue(new Callback<List<Categoria>>() {
+                @Override
+                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<Categoria> categorias = response.body();
+                        new InsertCategoriasAsyncTask(db).execute(categorias.toArray(new Categoria[0]));
+                        new LoadDataAsyncTask().execute(); // Ejecutar después de la sincronización
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<Categoria>> call, Throwable t) {
+                    // Manejar error
+                    Log.e("NuevoMovimientoActivity", "Error al sincronizar categorías", t);
+                }
+            });
+        } else {
+            new LoadDataAsyncTask().execute();
+        }
+    }
+
+    private static class InsertCategoriasAsyncTask extends AsyncTask<Categoria, Void, Void> {
+        private AppDatabase db;
+
+        InsertCategoriasAsyncTask(AppDatabase db) {
+            this.db = db;
+        }
+
+        @Override
+        protected Void doInBackground(Categoria... categorias) {
+            db.categoriaDao().deleteAllCategorias();
+            for (Categoria categoria : categorias) {
+                db.categoriaDao().insert(categoria);
+            }
+            return null;
+        }
     }
 
     private class LoadDataAsyncTask extends AsyncTask<Void, Void, Void> {

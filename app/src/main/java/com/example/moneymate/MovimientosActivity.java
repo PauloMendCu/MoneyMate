@@ -262,9 +262,9 @@ public class MovimientosActivity extends AppCompatActivity {
                                 });
                             }
                         });
+                    } else {
+                        Log.e("Sync", "Error al obtener las categorías del servidor");
                     }
-                } else {
-                    Log.e("Sync", "Error al obtener las categorías del servidor");
                 }
             }
 
@@ -274,6 +274,7 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         });
     }
+
 
     // Método para obtener movimientos por ID
     private Movimiento getMovimientoById(int id) {

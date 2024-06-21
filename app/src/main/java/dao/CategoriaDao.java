@@ -13,11 +13,12 @@ import entities.Categoria;
 
 @Dao
 public interface CategoriaDao {
-    @Insert()
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Categoria categoria);
 
     @Query("SELECT * FROM categorias")
     List<Categoria> getAllCategorias();
+
     @Query("SELECT * FROM categorias WHERE userId = :userId")
     List<Categoria> getAllByUser(String userId);
 
@@ -32,6 +33,7 @@ public interface CategoriaDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Categoria> categorias);
+
     @Query("DELETE FROM categorias")
     void deleteAllCategorias();
 
@@ -40,5 +42,4 @@ public interface CategoriaDao {
 
     @Delete
     void delete(Categoria categoria);
-
 }
