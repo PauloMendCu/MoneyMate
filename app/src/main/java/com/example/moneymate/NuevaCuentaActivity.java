@@ -15,6 +15,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -34,6 +37,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
     private RadioGroup rgTipoCuenta;
     private RadioButton rbCuentaDebito, rbCuentaCredito;
     private AppDatabase db;
+    private String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +45,9 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         setContentView(R.layout.activity_nuevacuenta);
 
         db = AppDatabase.getInstance(this);  // Utiliza getInstance()
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        userId = (currentUser != null) ? currentUser.getUid() : null;
 
         etNombreCuenta = findViewById(R.id.etMontoCuenta);
         etSaldoCuenta = findViewById(R.id.etSaldoCuenta);
@@ -110,6 +117,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         nuevaCuenta.setNombre(nombreCuenta);
         nuevaCuenta.setSaldo(saldo);
         nuevaCuenta.setTipo(tipoCuenta);
+        nuevaCuenta.setUserId(userId);
 
         if (isNetworkAvailable()) {
             nuevaCuenta.setIsSynced(true);
@@ -188,6 +196,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         movimientoSaldoInicial.setCuentaId(nuevaCuenta.getId());
         movimientoSaldoInicial.setCategoriaId(1); // Categoría predefinida para "Saldo inicial"
         movimientoSaldoInicial.setCuentaDestId(0);
+        movimientoSaldoInicial.setUserId(userId);
         movimientoSaldoInicial.setIsSynced(isSynced);
 
         if (isSynced) {

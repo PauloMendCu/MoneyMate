@@ -9,6 +9,7 @@ import androidx.room.Update;
 
 import java.util.List;
 
+import entities.Categoria;
 import entities.Cuenta;
 
 @Dao
@@ -21,6 +22,9 @@ public interface CuentaDao {
 
     @Query("SELECT * FROM cuentas WHERE userId = :userId")
     List<Cuenta> getAllByUser(String userId);
+
+    @Query("SELECT * FROM cuentas WHERE userId = :userId AND is_synced = 0")
+    List<Cuenta> getUnsyncedCuentas(String userId);
 
     @Query("SELECT * FROM cuentas WHERE id = :id AND userId = :userId")
     Cuenta getCuentaById(int id, String userId);

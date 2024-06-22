@@ -23,6 +23,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -49,6 +52,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private Calendar selectedDate = Calendar.getInstance();
     private IFinanceService financeService;
     private ICategoriaService categoriaService;
+    private String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +72,10 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         btnSeleccionarFecha = findViewById(R.id.btn_seleccionar_fecha);
 
         db = AppDatabase.getInstance(this);
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        userId = (currentUser != null) ? currentUser.getUid() : null;
+
         financeService = RetrofitClient.getFinanceService();
         categoriaService = RetrofitClient.getCategoriaService();
 
@@ -158,6 +166,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
                 nuevoMovimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
                 nuevoMovimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
+                nuevoMovimiento.setUserId(userId);
                 if (rbIngreso.isChecked()) {
                     nuevoMovimiento.setTipo("Ingreso");
                 } else if (rbGasto.isChecked()) {
@@ -166,7 +175,6 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                     nuevoMovimiento.setTipo("Transferencia");
                     nuevoMovimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
                 }
-
                 if (isNetworkAvailable()) {
                     registrarMovimientoEnApi(nuevoMovimiento);
                 } else {
@@ -225,7 +233,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(Void... voids) {
             cuentas = db.cuentaDao().getAllCuentas();
-            categorias = db.categoriaDao().getAllCategorias();
+            categorias = db.categoriaDao().getAllByUser(userId);
 
             // Agregar elementos predeterminados
             Cuenta defaultCuenta = new Cuenta();
@@ -334,13 +342,13 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private void actualizarSaldos(Movimiento movimiento) {
         new Thread(() -> {
             try {
-                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), "asd");
+                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), userId);
                 if (movimiento.getTipo().equals("Ingreso")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Gasto")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Transferencia")) {
-                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId(), "asd");
+                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId(), userId);
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                     cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
                     db.cuentaDao().update(cuentaDestino);

@@ -14,6 +14,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -42,10 +45,10 @@ public class CuentasActivity extends AppCompatActivity {
     private TextView tvIngresosTotalesTexto;
     private TextView tvGastosTotalesMonto;
     private TextView tvGastosTotalesTexto;
-
     private ExecutorService executorService;
     private AppDatabase db;
     private IFinanceService apiService;
+    String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +64,9 @@ public class CuentasActivity extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.recycler_view_cuentas);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        userId = (currentUser != null) ? currentUser.getUid() : null;
 
         cuentas = new ArrayList<>();
         adapter = new CuentaAdapter(cuentas, cuenta -> {
@@ -116,7 +122,7 @@ public class CuentasActivity extends AppCompatActivity {
     private void fetchResumen() {
         executorService.execute(() -> {
             MovimientoDao movimientoDao = db.movimientoDao();
-            List<Movimiento> movimientos = movimientoDao.getAllMovimientos();
+            List<Movimiento> movimientos = movimientoDao.getAllByUser(userId);
             double ingresosTotales = 0;
             double gastosTotales = 0;
 
@@ -138,16 +144,10 @@ public class CuentasActivity extends AppCompatActivity {
         });
     }
 
-    // Método para obtener cuentas por ID
-    private Cuenta getCuentaById(int id) {
-        CuentaDao cuentaDao = db.cuentaDao();
-        return cuentaDao.getCuentaById(id, "userId");  // Aquí debes pasar el ID del usuario o algún valor adecuado
-    }
-
     private void sincronizarCuentas() {
         executorService.execute(() -> {
             CuentaDao cuentaDao = db.cuentaDao();
-            List<Cuenta> cuentasNoSincronizadas = cuentaDao.getCuentasNoSincronizadas();
+            List<Cuenta> cuentasNoSincronizadas = cuentaDao.getUnsyncedCuentas(userId);
 
             if (!cuentasNoSincronizadas.isEmpty()) {
                 for (Cuenta cuenta : cuentasNoSincronizadas) {
@@ -182,7 +182,7 @@ public class CuentasActivity extends AppCompatActivity {
                             executorService.execute(() -> {
                                 for (Cuenta cuenta : cuentasServidor) {
                                     cuenta.setIsSynced(true);
-                                    Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId(), "userId"); // Ajustar la llamada
+                                    Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId(), userId); // Ajustar la llamada
                                     if (cuentaExistente == null) {
                                         cuentaDao.insert(cuenta);
                                     } else {
@@ -245,7 +245,7 @@ public class CuentasActivity extends AppCompatActivity {
 
     private void cargarDatosLocales() {
         executorService.execute(() -> {
-            List<Cuenta> cuentasLocales = db.cuentaDao().getAllCuentas();
+            List<Cuenta> cuentasLocales = db.cuentaDao().getAllByUser(userId);
             runOnUiThread(() -> {
                 cuentas.clear(); // Limpiar la lista antes de agregar las cuentas locales
                 cuentas.addAll(cuentasLocales);

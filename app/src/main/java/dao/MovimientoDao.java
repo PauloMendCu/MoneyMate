@@ -10,6 +10,7 @@ import androidx.room.Update;
 
 import java.util.List;
 
+import entities.Categoria;
 import entities.Movimiento;
 
 @Dao
@@ -21,10 +22,13 @@ public interface MovimientoDao {
     List<Movimiento> getAllByUser(String userId);
     @Query("SELECT * FROM movimientos WHERE isSynced = 0")
     List<Movimiento> getMovimientosNoSincronizados();
+
+    @Query("SELECT * FROM movimientos WHERE userId = :userId AND isSynced = 0")
+    List<Movimiento> getUnsyncedMovimientos(String userId);
     @Update
     void update(Movimiento movimiento);
-    @Query("SELECT * FROM movimientos WHERE cuentaId = :cuentaId OR (tipo = 'Transferencia' AND cuentaDestId = :cuentaId) ORDER BY fecha DESC")
-    List<Movimiento> getMovimientosPorCuenta(int cuentaId);
+    @Query("SELECT * FROM movimientos WHERE userId =:userId AND cuentaId = :cuentaId OR (tipo = 'Transferencia' AND cuentaDestId = :cuentaId) ORDER BY fecha DESC")
+    List<Movimiento> getMovimientosPorCuenta(String userId, int cuentaId);
     @Delete
     void delete(Movimiento movimiento);
     @Query("SELECT * FROM movimientos WHERE id = :id AND userId = :userId")
