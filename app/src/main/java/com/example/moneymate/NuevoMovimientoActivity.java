@@ -27,9 +27,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import entities.AppDatabase;
 import entities.Categoria;
@@ -79,7 +82,12 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         financeService = RetrofitClient.getFinanceService();
         categoriaService = RetrofitClient.getCategoriaService();
 
-        sincronizarCategorias();
+        // Sincronizar categorías solo si hay conexión
+        if (isNetworkAvailable()) {
+            sincronizarCategorias();
+        } else {
+            cargarCategoriasDesdeLocal();
+        }
 
         rbTransferencia.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -95,7 +103,6 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-
         // Botón para ver cuentas
         ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
         btnVerCuentas.setOnClickListener(view -> {
@@ -109,6 +116,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             Intent intent = new Intent(NuevoMovimientoActivity.this, NuevoMovimientoActivity.class);
             startActivity(intent);
         });
+
         etMonto.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -166,7 +174,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
                 nuevoMovimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
                 nuevoMovimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
-                nuevoMovimiento.setUserId(userId);
+                nuevoMovimiento.setUserId(userId);  // Asegurarse de establecer el userId
                 if (rbIngreso.isChecked()) {
                     nuevoMovimiento.setTipo("Ingreso");
                 } else if (rbGasto.isChecked()) {
@@ -187,42 +195,65 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     }
 
     private void sincronizarCategorias() {
-        if (isNetworkAvailable()) {
-            categoriaService.getCategorias().enqueue(new Callback<List<Categoria>>() {
-                @Override
-                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        List<Categoria> categorias = response.body();
-                        new InsertCategoriasAsyncTask(db).execute(categorias.toArray(new Categoria[0]));
-                        new LoadDataAsyncTask().execute(); // Ejecutar después de la sincronización
-                    }
+        categoriaService.getCategorias().enqueue(new Callback<List<Categoria>>() {
+            @Override
+            public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Categoria> categorias = response.body();
+                    new InsertCategoriasAsyncTask(db, userId).execute(categorias.toArray(new Categoria[0]));
                 }
+            }
 
-                @Override
-                public void onFailure(Call<List<Categoria>> call, Throwable t) {
-                    // Manejar error
-                    Log.e("NuevoMovimientoActivity", "Error al sincronizar categorías", t);
-                }
-            });
-        } else {
-            new LoadDataAsyncTask().execute();
-        }
+            @Override
+            public void onFailure(Call<List<Categoria>> call, Throwable t) {
+                // Manejar error
+                Log.e("NuevoMovimientoActivity", "Error al sincronizar categorías", t);
+                // En caso de error, cargar desde la base de datos local
+                cargarCategoriasDesdeLocal();
+            }
+        });
     }
 
-    private static class InsertCategoriasAsyncTask extends AsyncTask<Categoria, Void, Void> {
-        private AppDatabase db;
+    private void cargarCategoriasDesdeLocal() {
+        new LoadCategoriasDesdeLocalAsyncTask().execute();
+    }
 
-        InsertCategoriasAsyncTask(AppDatabase db) {
+    private class InsertCategoriasAsyncTask extends AsyncTask<Categoria, Void, Void> {
+        private AppDatabase db;
+        private String userId;
+
+        InsertCategoriasAsyncTask(AppDatabase db, String userId) {
             this.db = db;
+            this.userId = userId;
         }
 
         @Override
         protected Void doInBackground(Categoria... categorias) {
-            db.categoriaDao().deleteAllCategorias();
+            db.categoriaDao().deleteAllCategoriasByUser(userId);
             for (Categoria categoria : categorias) {
+                categoria.setUserId(userId);  // Asegúrate de que la categoría tenga el userId correcto
                 db.categoriaDao().insert(categoria);
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            new LoadDataAsyncTask().execute();
+        }
+    }
+
+    private class LoadCategoriasDesdeLocalAsyncTask extends AsyncTask<Void, Void, List<Categoria>> {
+        @Override
+        protected List<Categoria> doInBackground(Void... voids) {
+            return db.categoriaDao().getAllByUser(userId);
+        }
+
+        @Override
+        protected void onPostExecute(List<Categoria> categorias) {
+            super.onPostExecute(categorias);
+            cargarCategoriasEnSpinner(categorias);
         }
     }
 
@@ -234,6 +265,10 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         protected Void doInBackground(Void... voids) {
             cuentas = db.cuentaDao().getAllCuentas();
             categorias = db.categoriaDao().getAllByUser(userId);
+
+            // Eliminar duplicados si los hay
+            Set<Categoria> categoriasSet = new LinkedHashSet<>(categorias);
+            categorias = new ArrayList<>(categoriasSet);
 
             // Agregar elementos predeterminados
             Cuenta defaultCuenta = new Cuenta();
@@ -259,11 +294,16 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             spinnerCuenta.setAdapter(adapterCuentas);
             spinnerCuentaDestino.setAdapter(adapterCuentas);
 
-            // Adapter para categorias
-            ArrayAdapter<Categoria> adapterCategorias = new ArrayAdapter<>(NuevoMovimientoActivity.this, android.R.layout.simple_spinner_item, categorias);
-            adapterCategorias.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinnerCategoria.setAdapter(adapterCategorias);
+            // Cargar categorías en el spinner
+            cargarCategoriasEnSpinner(categorias);
         }
+    }
+
+    private void cargarCategoriasEnSpinner(List<Categoria> categorias) {
+        // Adapter para categorias
+        ArrayAdapter<Categoria> adapterCategorias = new ArrayAdapter<>(NuevoMovimientoActivity.this, android.R.layout.simple_spinner_item, categorias);
+        adapterCategorias.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategoria.setAdapter(adapterCategorias);
     }
 
     private boolean isNetworkAvailable() {

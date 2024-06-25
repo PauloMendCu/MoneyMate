@@ -33,7 +33,8 @@ public interface CategoriaDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Categoria> categorias);
-
+    @Query("DELETE FROM categorias WHERE userId = :userId")
+    void deleteAllCategoriasByUser(String userId);
     @Query("DELETE FROM categorias")
     void deleteAllCategorias();
 
