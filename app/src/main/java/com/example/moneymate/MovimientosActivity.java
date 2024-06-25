@@ -13,15 +13,16 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,11 +54,15 @@ public class MovimientosActivity extends AppCompatActivity {
     private int mesSeleccionado;
     private int anoSeleccionado;
     private TextView tvMesAno;
+    private String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movimientos);
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        userId = (currentUser != null) ? currentUser.getUid() : null;
 
         // Inicializaciones
         inicializarComponentes();
@@ -156,21 +161,21 @@ public class MovimientosActivity extends AppCompatActivity {
             CuentaDao cuentaDao = db.cuentaDao();
 
             // Cargar movimientos locales
-            List<Movimiento> movimientosLocales = movimientoDao.getAllMovimientos();
+            List<Movimiento> movimientosLocales = movimientoDao.getAllByUser(userId);
             runOnUiThread(() -> {
                 movimientosCompletos.addAll(movimientosLocales);
                 adapter.notifyDataSetChanged(); // Actualizar el adaptador con los movimientos cargados
             });
 
             // Cargar categorías locales
-            List<Categoria> categoriasLocales = categoriaDao.getAllCategorias();
+            List<Categoria> categoriasLocales = categoriaDao.getAllByUser(userId);
             runOnUiThread(() -> {
                 categorias.addAll(categoriasLocales);
                 configurarSpinnerCategoria(); // Configurar el spinner con las categorías cargadas
             });
 
             // Cargar cuentas locales
-            List<Cuenta> cuentasLocales = cuentaDao.getAllCuentas();
+            List<Cuenta> cuentasLocales = cuentaDao.getAllByUser(userId);
             runOnUiThread(() -> {
                 cuentas.addAll(cuentasLocales);
                 adapter.notifyDataSetChanged(); // Actualizar el adaptador con las cuentas cargadas
@@ -193,7 +198,7 @@ public class MovimientosActivity extends AppCompatActivity {
         ICategoriaService categoriaService = RetrofitClient.getInstanceCategorias().create(ICategoriaService.class);
 
         // Obtener categorías no sincronizadas localmente
-        List<Categoria> categoriasNoSincronizadas = categoriaDao.getCategoriasNoSincronizadas();
+        List<Categoria> categoriasNoSincronizadas = categoriaDao.getUnsyncedCategories(userId);
 
         // Sincronizar categorías locales con el servidor
         if (!categoriasNoSincronizadas.isEmpty()) {
@@ -233,7 +238,7 @@ public class MovimientosActivity extends AppCompatActivity {
                                 Log.d("Sync", "Procesando categoría: " + categoria.getNombre());
                                 categoria.setIsSynced(true);
                                 // Verificar si la categoría ya existe antes de insertarla
-                                Categoria categoriaExistente = categoriaDao.getCategoriaById(categoria.getId());
+                                Categoria categoriaExistente = categoriaDao.getCategoriaById(categoria.getId(), userId);
                                 if (categoriaExistente == null) {
                                     categoriaDao.insert(categoria);
                                     Log.d("Sync", "Categoría insertada: " + categoria.getNombre());
@@ -264,9 +269,9 @@ public class MovimientosActivity extends AppCompatActivity {
                                 });
                             }
                         });
+                    } else {
+                        Log.e("Sync", "Error al obtener las categorías del servidor");
                     }
-                } else {
-                    Log.e("Sync", "Error al obtener las categorías del servidor");
                 }
             }
 
@@ -277,15 +282,21 @@ public class MovimientosActivity extends AppCompatActivity {
         });
     }
 
+
+    // Método para obtener movimientos por ID
+    private Movimiento getMovimientoById(int id) {
+        MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
+        return movimientoDao.getMovimientoById(id, userId);  // Aquí debes pasar el ID del usuario o algún valor adecuado
+    }
+
+    // Modificación en la sincronización
     private void sincronizarMovimientos() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
         IFinanceService apiService = RetrofitClient.getInstance().create(IFinanceService.class);
 
-        // Obtener movimientos no sincronizados localmente
-        List<Movimiento> movimientosNoSincronizados = movimientoDao.getMovimientosNoSincronizados();
+        List<Movimiento> movimientosNoSincronizados = movimientoDao.getUnsyncedMovimientos(userId);
 
-        // Sincronizar movimientos locales con el servidor
         if (!movimientosNoSincronizados.isEmpty()) {
             for (Movimiento movimiento : movimientosNoSincronizados) {
                 apiService.agregarMovimiento(movimiento).enqueue(new Callback<Movimiento>() {
@@ -310,7 +321,6 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         }
 
-        // Obtener movimientos del servidor y sincronizar con la base de datos local
         apiService.getMovimientos().enqueue(new Callback<List<Movimiento>>() {
             @Override
             public void onResponse(Call<List<Movimiento>> call, Response<List<Movimiento>> response) {
@@ -320,28 +330,12 @@ public class MovimientosActivity extends AppCompatActivity {
                         executorService.execute(() -> {
                             for (Movimiento movimiento : movimientosServidor) {
                                 movimiento.setIsSynced(true);
-                                // Verificar si el movimiento ya existe antes de insertarlo
-                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId());
+                                Movimiento movimientoExistente = movimientoDao.getMovimientoById(movimiento.getId(), userId); // Ajustar la llamada
                                 if (movimientoExistente == null) {
                                     movimientoDao.insert(movimiento);
                                 } else {
                                     movimientoDao.update(movimiento);
                                 }
-                            }
-
-                            // Actualizar movimientos en el servidor como sincronizados
-                            for (Movimiento movimiento : movimientosServidor) {
-                                apiService.actualizarMovimiento(movimiento.getId(), movimiento).enqueue(new Callback<Movimiento>() {
-                                    @Override
-                                    public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
-                                        // Movimiento actualizado correctamente en el servidor
-                                    }
-
-                                    @Override
-                                    public void onFailure(Call<Movimiento> call, Throwable t) {
-                                        // Manejar error
-                                    }
-                                });
                             }
                         });
                     }
@@ -356,13 +350,15 @@ public class MovimientosActivity extends AppCompatActivity {
     }
 
 
+
+
     private void sincronizarCuentas() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         CuentaDao cuentaDao = AppDatabase.getInstance(this).cuentaDao();
         IFinanceService apiService = RetrofitClient.getInstance().create(IFinanceService.class);
 
         // Obtener cuentas no sincronizadas localmente
-        List<Cuenta> cuentasNoSincronizadas = cuentaDao.getCuentasNoSincronizadas();
+        List<Cuenta> cuentasNoSincronizadas = cuentaDao.getUnsyncedCuentas(userId);
 
         // Sincronizar cuentas locales con el servidor
         if (!cuentasNoSincronizadas.isEmpty()) {
@@ -400,7 +396,7 @@ public class MovimientosActivity extends AppCompatActivity {
                             for (Cuenta cuenta : cuentasServidor) {
                                 cuenta.setIsSynced(true);
                                 // Verificar si la cuenta ya existe antes de insertarla
-                                Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId());
+                                Cuenta cuentaExistente = cuentaDao.getCuentaById(cuenta.getId(), userId);
                                 if (cuentaExistente == null) {
                                     cuentaDao.insert(cuenta);
                                 } else {
@@ -438,7 +434,7 @@ public class MovimientosActivity extends AppCompatActivity {
 
     private void actualizarMovimientos() {
         AppDatabase.getDatabaseWriteExecutor().execute(() -> {
-            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllMovimientos();
+            movimientosCompletos = AppDatabase.getInstance(MovimientosActivity.this).movimientoDao().getAllByUser(userId);
             runOnUiThread(() -> {
                 filtrarMovimientos();
             });

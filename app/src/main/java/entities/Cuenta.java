@@ -6,25 +6,23 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "cuentas")
 public class Cuenta {
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
     private int id;
-
     @ColumnInfo(name = "nombre")
     private String nombre;
-
     @ColumnInfo(name = "saldo")
     private double saldo;
-
     @ColumnInfo(name = "tipo")
     private int tipo;
-
+    public String userId;
     @ColumnInfo(name = "is_synced")
     private boolean isSynced;  // Nuevo campo
-    public Cuenta(int id, String nombre, double saldo, int tipo, boolean isSynced) {
+    public Cuenta(int id, String nombre, double saldo, int tipo, String userId, boolean isSynced) {
         this.id = id;
         this.nombre = nombre;
         this.saldo = saldo;
         this.tipo = tipo;
+        this.userId = userId;
         this.isSynced = isSynced;
     }
     public Cuenta() {
@@ -62,6 +60,15 @@ public class Cuenta {
         this.tipo = tipo;
     }
 
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    // Getters y Setters para isSynced
     public boolean isSynced() {
         return isSynced;
     }

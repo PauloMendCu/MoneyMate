@@ -10,8 +10,6 @@ import androidx.room.Update;
 import java.util.List;
 
 import entities.Categoria;
-import entities.Cuenta;
-import entities.Movimiento;
 
 @Dao
 public interface CategoriaDao {
@@ -21,21 +19,27 @@ public interface CategoriaDao {
     @Query("SELECT * FROM categorias")
     List<Categoria> getAllCategorias();
 
-    @Query("SELECT * FROM categorias WHERE id = :id LIMIT 1")
-    Categoria getCategoriaById(int id);
+    @Query("SELECT * FROM categorias WHERE userId = :userId")
+    List<Categoria> getAllByUser(String userId);
+
+    @Query("SELECT * FROM categorias WHERE id = :id AND userId = :userId LIMIT 1")
+    Categoria getCategoriaById(int id, String userId);
 
     @Query("SELECT * FROM categorias WHERE isSynced = 0")
     List<Categoria> getCategoriasNoSincronizadas();
 
+    @Query("SELECT * FROM categorias WHERE userId = :userId AND isSynced = 0")
+    List<Categoria> getUnsyncedCategories(String userId);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Categoria> categorias);
 
-    @Update
-    void update(Categoria categoria);
     @Query("DELETE FROM categorias")
     void deleteAllCategorias();
 
+    @Update
+    void update(Categoria categoria);
+
     @Delete
     void delete(Categoria categoria);
-
 }

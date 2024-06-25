@@ -6,8 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/colorFondo"
-    android:paddingTop="50dp">
-
+    android:paddingTop="45dp">
 
     <TextView
         android:id="@+id/tituloPrincipal"
@@ -29,14 +28,45 @@
         android:textStyle="bold"
         android:textColor="@color/botonSecundario"
         android:gravity="center_horizontal"
-        android:layout_marginBottom="25dp"/>
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="BIENVENIDO"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="8dp"/>
+
+    <TextView
+        android:id="@+id/userEmailTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/logoutButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cerrar Sesión"
+        android:backgroundTint="@color/botonSecundario"
+        android:layout_marginStart="128dp"
+        android:layout_marginEnd="128dp"
+        android:layout_marginBottom="32dp"/>
 
     <LinearLayout
         android:id="@+id/contenedorBotones"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="32dp"
         android:layout_marginEnd="32dp"
         android:background="@drawable/rounded_bg"
         android:gravity="center_horizontal"
@@ -47,8 +77,8 @@
             android:layout_width="200dp"
             android:layout_height="200dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="32dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
             android:src="@drawable/logo" />
 
 
@@ -57,10 +87,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"
             android:backgroundTint="@color/botonPrimario"
             android:text="VER CUENTAS"
+            android:textAllCaps="true" />
+
+        <Button
+            android:id="@+id/btn_ver_categorias"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:backgroundTint="@color/colorFondo"
+            android:text="VER CATEGORIAS"
             android:textAllCaps="true" />
 
         <Button

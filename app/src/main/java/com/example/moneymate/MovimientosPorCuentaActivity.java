@@ -15,6 +15,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -47,6 +50,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
     private int mesSeleccionado;
     private int anoSeleccionado;
+    String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +59,9 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.recycler_view_movimientos_cuenta);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        userId = (currentUser != null) ? currentUser.getUid() : null;
 
         movimientosFiltrados = new ArrayList<>();
         cuentas = new ArrayList<>();
@@ -259,7 +266,7 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             AppDatabase db = AppDatabase.getInstance(this);
             MovimientoDao movimientoDao = db.movimientoDao();
 
-            List<Movimiento> movimientos = movimientoDao.getMovimientosPorCuenta(cuentaId);
+            List<Movimiento> movimientos = movimientoDao.getMovimientosPorCuenta(userId, cuentaId);
             movimientosFiltrados.clear();
             movimientosFiltrados.addAll(movimientos);
 
@@ -277,10 +284,10 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             CategoriaDao categoriaDao = db.categoriaDao();
 
             cuentas.clear();
-            cuentas.addAll(cuentaDao.getAllCuentas());
+            cuentas.addAll(cuentaDao.getAllByUser(userId));
 
             categorias.clear();
-            categorias.addAll(categoriaDao.getAllCategorias());
+            categorias.addAll(categoriaDao.getAllByUser(userId));
 
             runOnUiThread(() -> {
                 ArrayAdapter<String> adapterSpinner = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());

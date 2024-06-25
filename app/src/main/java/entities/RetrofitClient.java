@@ -2,6 +2,8 @@ package entities;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import services.ICategoriaService;
+import services.IFinanceService;
 
 public class RetrofitClient {
     private static Retrofit retrofit;
@@ -28,4 +30,12 @@ public class RetrofitClient {
         }
         return retrofitCategorias;
     }
+
+    public static IFinanceService getFinanceService() {
+        return getInstance().create(IFinanceService.class);
+    }
+    public static ICategoriaService getCategoriaService() {
+        return getInstanceCategorias().create(ICategoriaService.class);
+    }
+
 }

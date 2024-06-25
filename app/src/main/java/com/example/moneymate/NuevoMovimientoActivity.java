@@ -3,6 +3,7 @@ package com.example.moneymate;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -15,15 +16,18 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -35,6 +39,7 @@ import entities.RetrofitClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import services.ICategoriaService;
 import services.IFinanceService;
 
 public class NuevoMovimientoActivity extends AppCompatActivity {
@@ -46,6 +51,8 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
     private static final int NO_CUENTA_SELECCIONADA = -1;
     private Calendar selectedDate = Calendar.getInstance();
     private IFinanceService financeService;
+    private ICategoriaService categoriaService;
+    private String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,9 +72,14 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         btnSeleccionarFecha = findViewById(R.id.btn_seleccionar_fecha);
 
         db = AppDatabase.getInstance(this);
-        financeService = RetrofitClient.getInstance().create(IFinanceService.class);
 
-        new LoadDataAsyncTask().execute();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        userId = (currentUser != null) ? currentUser.getUid() : null;
+
+        financeService = RetrofitClient.getFinanceService();
+        categoriaService = RetrofitClient.getCategoriaService();
+
+        sincronizarCategorias();
 
         rbTransferencia.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -77,6 +89,26 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             }
         });
 
+        ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
+        btnVerMovimientos.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, MovimientosActivity.class);
+            startActivity(intent);
+        });
+
+
+        // Botón para ver cuentas
+        ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
+        btnVerCuentas.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para registrar nuevo movimiento
+        ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
+        btnNuevoMovimiento.setOnClickListener(v -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, NuevoMovimientoActivity.class);
+            startActivity(intent);
+        });
         etMonto.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -124,33 +156,74 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         btnGuardar.setOnClickListener(v -> {
             if (validarCampos()) {
-                Movimiento movimiento = new Movimiento();
-                movimiento.setDescripcion(etDescripcion.getText().toString());
-                movimiento.setMonto(Double.parseDouble(etMonto.getText().toString()));
+                Movimiento nuevoMovimiento = new Movimiento();
+                nuevoMovimiento.setDescripcion(etDescripcion.getText().toString());
+                nuevoMovimiento.setMonto(Double.parseDouble(etMonto.getText().toString()));
 
                 // Convertir la fecha seleccionada a un formato legible
                 SimpleDateFormat sdfTimestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                movimiento.setFecha(sdfTimestamp.format(selectedDate.getTime()));
+                nuevoMovimiento.setFecha(sdfTimestamp.format(selectedDate.getTime()));
 
-                movimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
-                movimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
+                nuevoMovimiento.setCuentaId(((Cuenta) spinnerCuenta.getSelectedItem()).getId());
+                nuevoMovimiento.setCategoriaId(((Categoria) spinnerCategoria.getSelectedItem()).getId());
+                nuevoMovimiento.setUserId(userId);
                 if (rbIngreso.isChecked()) {
-                    movimiento.setTipo("Ingreso");
+                    nuevoMovimiento.setTipo("Ingreso");
                 } else if (rbGasto.isChecked()) {
-                    movimiento.setTipo("Gasto");
+                    nuevoMovimiento.setTipo("Gasto");
                 } else if (rbTransferencia.isChecked()) {
-                    movimiento.setTipo("Transferencia");
-                    movimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
+                    nuevoMovimiento.setTipo("Transferencia");
+                    nuevoMovimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
                 }
-                if (isInternetAvailable()) {
-                    movimiento.setIsSynced(true);
-                    registrarMovimientoEnApi(movimiento);
+                if (isNetworkAvailable()) {
+                    registrarMovimientoEnApi(nuevoMovimiento);
                 } else {
-                    movimiento.setIsSynced(false);
-                    registrarMovimientoLocalmente(movimiento);
+                    registrarMovimientoLocalmente(nuevoMovimiento);
                 }
             }
         });
+
+        new LoadDataAsyncTask().execute();
+    }
+
+    private void sincronizarCategorias() {
+        if (isNetworkAvailable()) {
+            categoriaService.getCategorias().enqueue(new Callback<List<Categoria>>() {
+                @Override
+                public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<Categoria> categorias = response.body();
+                        new InsertCategoriasAsyncTask(db).execute(categorias.toArray(new Categoria[0]));
+                        new LoadDataAsyncTask().execute(); // Ejecutar después de la sincronización
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<Categoria>> call, Throwable t) {
+                    // Manejar error
+                    Log.e("NuevoMovimientoActivity", "Error al sincronizar categorías", t);
+                }
+            });
+        } else {
+            new LoadDataAsyncTask().execute();
+        }
+    }
+
+    private static class InsertCategoriasAsyncTask extends AsyncTask<Categoria, Void, Void> {
+        private AppDatabase db;
+
+        InsertCategoriasAsyncTask(AppDatabase db) {
+            this.db = db;
+        }
+
+        @Override
+        protected Void doInBackground(Categoria... categorias) {
+            db.categoriaDao().deleteAllCategorias();
+            for (Categoria categoria : categorias) {
+                db.categoriaDao().insert(categoria);
+            }
+            return null;
+        }
     }
 
     private class LoadDataAsyncTask extends AsyncTask<Void, Void, Void> {
@@ -159,8 +232,8 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            cuentas = db.cuentaDao().getAll();
-            categorias = db.categoriaDao().getAllCategorias();
+            cuentas = db.cuentaDao().getAllCuentas();
+            categorias = db.categoriaDao().getAllByUser(userId);
 
             // Agregar elementos predeterminados
             Cuenta defaultCuenta = new Cuenta();
@@ -193,9 +266,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         }
     }
 
-
-
-    private boolean isInternetAvailable() {
+    private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
@@ -228,10 +299,9 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                         Movimiento movimientoResponse = response.body();
                         if (movimientoResponse != null) {
                             movimiento.setId(movimientoResponse.getId());
+                            actualizarSaldos(movimiento); // Actualizar saldos de las cuentas
                             new InsertMovimientoAsyncTask(db).execute(movimiento);
 
-                            // Actualizar saldos de las cuentas
-                            actualizarSaldosEnApi(movimiento);
                             runOnUiThread(() -> {
                                 Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado", Toast.LENGTH_SHORT).show();
                                 Log.d("MovimientoRegistro", "Movimiento registrado en API y localmente: " + movimiento.toString());
@@ -259,8 +329,8 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             // Log del movimiento antes de registrar
             Log.d("MovimientoRegistro", "Registrando localmente: " + movimiento.toString());
 
+            actualizarSaldos(movimiento); // Actualizar saldos de las cuentas
             new InsertMovimientoAsyncTask(db).execute(movimiento);
-            actualizarSaldosLocalmente(movimiento);
 
             runOnUiThread(() -> {
                 Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado localmente", Toast.LENGTH_SHORT).show();
@@ -269,16 +339,16 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void actualizarSaldosEnApi(Movimiento movimiento) {
+    private void actualizarSaldos(Movimiento movimiento) {
         new Thread(() -> {
             try {
-                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId());
+                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId(), userId);
                 if (movimiento.getTipo().equals("Ingreso")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Gasto")) {
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                 } else if (movimiento.getTipo().equals("Transferencia")) {
-                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId());
+                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId(), userId);
                     cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
                     cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
                     db.cuentaDao().update(cuentaDestino);
@@ -315,27 +385,6 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                     }
                 });
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-    private void actualizarSaldosLocalmente(Movimiento movimiento) {
-        new Thread(() -> {
-            try {
-                Cuenta cuentaOrigen = db.cuentaDao().getCuentaById(movimiento.getCuentaId());
-                if (movimiento.getTipo().equals("Ingreso")) {
-                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() + movimiento.getMonto());
-                } else if (movimiento.getTipo().equals("Gasto")) {
-                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
-                } else if (movimiento.getTipo().equals("Transferencia")) {
-                    Cuenta cuentaDestino = db.cuentaDao().getCuentaById(movimiento.getCuentaDestId());
-                    cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - movimiento.getMonto());
-                    cuentaDestino.setSaldo(cuentaDestino.getSaldo() + movimiento.getMonto());
-                    db.cuentaDao().update(cuentaDestino);
-                }
-                db.cuentaDao().update(cuentaOrigen);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -382,6 +431,4 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         return true;
     }
-
-
 }

@@ -7,33 +7,29 @@ import androidx.room.PrimaryKey;
 import java.util.Comparator;
 @Entity(tableName = "movimientos")
 public class Movimiento {
-    @PrimaryKey
-    private int id;
 
+    @PrimaryKey(autoGenerate = true)
+    private int id;
+    @ColumnInfo(name = "isSynced")
+    private boolean isSynced;  // Campo isSynced
     @ColumnInfo(name = "descripcion")
     private String descripcion;
-
     @ColumnInfo(name = "monto")
     private double monto;
-
     @ColumnInfo(name = "fecha")
     private String fecha;
-
     @ColumnInfo(name = "tipo")
     private String tipo;
-
     @ColumnInfo(name = "cuentaId")
     private int cuentaId;
-
     @ColumnInfo(name = "categoriaId")
     private int categoriaId;
-
     @ColumnInfo(name = "cuentaDestId")
     private int cuentaDestId;
-    private boolean isSynced;  // Nuevo campo
+    public String userId;
 
 
-    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId, int cuentaDestId, boolean isSynced) {
+    public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId, int cuentaDestId, String userId, boolean isSynced) {
         this.id = id;
         this.descripcion = descripcion;
         this.monto = monto;
@@ -42,6 +38,7 @@ public class Movimiento {
         this.cuentaId = cuentaId;
         this.categoriaId = categoriaId;
         this.cuentaDestId = cuentaDestId;
+        this.userId = userId;
         this.isSynced = isSynced;
     }
 
@@ -110,6 +107,14 @@ public class Movimiento {
 
     public void setCuentaDestId(int cuentaDestId) {
         this.cuentaDestId = cuentaDestId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public boolean isSynced() {

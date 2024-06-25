@@ -1,5 +1,6 @@
 plugins {
-    alias(libs.plugins.androidApplication)
+    id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -49,9 +50,14 @@ dependencies {
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation("androidx.room:room-runtime:2.5.0")
+    implementation(libs.firebase.auth)
     annotationProcessor("androidx.room:room-compiler:2.5.0")
     implementation("androidx.room:room-ktx:2.5.0")
     androidTestImplementation("androidx.room:room-testing:2.5.0")
+    implementation ("androidx.room:room-runtime:2.4.3")
+    annotationProcessor ("androidx.room:room-compiler:2.4.3")
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-auth")
 
 
     testImplementation(libs.junit)

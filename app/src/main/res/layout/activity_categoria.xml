@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:background="@color/colorFondo">
+
+        <TextView
+            android:id="@+id/titulo_categorias"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CATEGORIAS"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+
+        <EditText
+            android:id="@+id/nombreCategoriaEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nombre de la categoría" />
+
+        <Button
+            android:id="@+id/addCategoriaButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/botonSecundario"
+            android:layout_marginStart="75dp"
+            android:layout_marginEnd="75dp"
+            android:text="Registrar Nueva Categoría" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewCategorias"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

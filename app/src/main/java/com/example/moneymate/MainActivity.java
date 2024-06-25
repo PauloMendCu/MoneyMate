@@ -13,17 +13,23 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.room.Room;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import entities.AppDatabase;
-
+import utils.SyncService;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView logoImageView;
     private LinearLayout buttonLinearLayout;
     private TextView textView;
+    private TextView userEmailTextView;
     private AppDatabase db;
+    private FirebaseAuth mAuth;
+    private SyncService syncService;
+    Button logoutButton;
 
 
     @Override
@@ -31,8 +37,30 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        db = Room.databaseBuilder(getApplicationContext(),
-                AppDatabase.class, "database-name").allowMainThreadQueries().build();
+        mAuth = FirebaseAuth.getInstance();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        syncService = new SyncService(this);
+
+        userEmailTextView = findViewById(R.id.userEmailTextView);
+        logoutButton = findViewById(R.id.logoutButton);
+
+        userEmailTextView.setText(currentUser.getEmail());
+        Button logoutButton = findViewById(R.id.logoutButton);
+        logoutButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mAuth.signOut();
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                finish();
+            }
+        });
+
 
 
         // Botón para ver movimientos
@@ -55,6 +83,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Botón para ver categorias
+        Button btnVerCategorias = findViewById(R.id.btn_ver_categorias);
+        btnVerCategorias.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, CategoriaActivity.class);
+                startActivity(intent);
+            }
+        });
 
         // Botón para registrar nuevo movimiento
         Button btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
@@ -66,20 +103,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-
         Animaciones();
     }
 
-
     private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager
-                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    protected void Animaciones(){
+    protected void Animaciones() {
         //Probando la animación del título
         TextView textView = findViewById(R.id.tituloPrincipal);
         TextView textView2 = findViewById(R.id.tituloSecundario);
@@ -101,7 +134,5 @@ public class MainActivity extends AppCompatActivity {
         animator.setDuration(3000); // Duración de la animación en milisegundos
         animator.setStartDelay(1000); // Retraso de 1 segundo antes de comenzar la animación
         animator.start();
-
-
     }
 }
