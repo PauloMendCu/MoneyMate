@@ -9,23 +9,24 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
             android:background="@color/colorFondo">
 
+
             <TextView
                 android:id="@+id/titulo_cuentas"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Cuentas"
                 android:textSize="24sp"
-                android:gravity="center"
                 android:textColor="@color/white"
-                android:textStyle="bold"/>
+                android:textStyle="bold"
+                android:layout_centerInParent="true"/>
 
-        </LinearLayout>
+        </RelativeLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -142,6 +143,15 @@
         android:layout_alignParentBottom="true">
 
         <ImageButton
+            android:id="@+id/btn_menu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_menu2"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver inicio" />
+
+        <ImageButton
             android:id="@+id/btn_ver_cuentas"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -159,7 +169,14 @@
             android:background="@android:color/transparent"
             android:contentDescription="Ver Movimientos" />
 
-
+        <ImageButton
+            android:id="@+id/btn_ver_categorias"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:src="@drawable/ic_cat"
+            android:background="@android:color/transparent"
+            android:contentDescription="Ver Categorias" />
 
         <ImageButton
             android:id="@+id/btn_nuevo_movimiento"

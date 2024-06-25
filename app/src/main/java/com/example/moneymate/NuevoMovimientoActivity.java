@@ -110,6 +110,20 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // Botón para ver inicio
+        ImageButton btnInicio = findViewById(R.id.btn_menu);
+        btnInicio.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, MainActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para ver categorias
+        ImageButton bntVerCategorias = findViewById(R.id.btn_ver_categorias);
+        bntVerCategorias.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevoMovimientoActivity.this, CategoriaActivity.class);
+            startActivity(intent);
+        });
+
         // Botón para registrar nuevo movimiento
         ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
         btnNuevoMovimiento.setOnClickListener(v -> {
@@ -345,6 +359,9 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                             runOnUiThread(() -> {
                                 Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado", Toast.LENGTH_SHORT).show();
                                 Log.d("MovimientoRegistro", "Movimiento registrado en API y localmente: " + movimiento.toString());
+                                // Redirigir a la vista deseada
+                                Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
+                                startActivity(intent);
                             });
                         }
                     } else {
@@ -364,6 +381,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
         }).start();
     }
 
+
     private void registrarMovimientoLocalmente(Movimiento movimiento) {
         new Thread(() -> {
             // Log del movimiento antes de registrar
@@ -375,9 +393,13 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 Toast.makeText(NuevoMovimientoActivity.this, "Movimiento registrado localmente", Toast.LENGTH_SHORT).show();
                 Log.d("MovimientoRegistro", "Movimiento registrado localmente: " + movimiento.toString());
+                // Redirigir a la vista deseada
+                Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
+                startActivity(intent);
             });
         }).start();
     }
+
 
     private void actualizarSaldos(Movimiento movimiento) {
         new Thread(() -> {

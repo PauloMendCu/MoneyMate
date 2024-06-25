@@ -78,6 +78,21 @@ public class NuevaCuentaActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // Botón para ver categorias
+        ImageButton bntVerCategorias = findViewById(R.id.btn_ver_categorias);
+        bntVerCategorias.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevaCuentaActivity.this, CategoriaActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para ver inicio
+        ImageButton btnInicio = findViewById(R.id.btn_menu);
+        btnInicio.setOnClickListener(view -> {
+            Intent intent = new Intent(NuevaCuentaActivity.this, MainActivity.class);
+            startActivity(intent);
+        });
+
+
         // Botón para registrar nuevo movimiento
         ImageButton btnNuevoMovimiento = findViewById(R.id.btn_nuevo_movimiento);
         btnNuevoMovimiento.setOnClickListener(v -> {

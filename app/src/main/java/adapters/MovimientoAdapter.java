@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.moneymate.R;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import entities.Categoria;
@@ -20,7 +21,6 @@ import entities.Movimiento;
 
 public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.MovimientoViewHolder> {
 
-    // Clase interna para el ViewHolder
     static class MovimientoViewHolder extends RecyclerView.ViewHolder {
         TextView descripcion;
         TextView nombreCuenta;
@@ -44,7 +44,6 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     private List<Cuenta> cuentas;
     private List<Categoria> categorias;
 
-
     public MovimientoAdapter(List<Movimiento> movimientos, List<Cuenta> cuentas, List<Categoria> categorias) {
         this.movimientos = movimientos;
         this.cuentas = cuentas;
@@ -58,7 +57,6 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
         View view = inflater.inflate(R.layout.item_movimiento, parent, false);
         return new MovimientoViewHolder(view);
     }
-
 
     @Override
     public void onBindViewHolder(@NonNull MovimientoViewHolder holder, int position) {
@@ -122,10 +120,12 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
 
     public void updateMovimientos(List<Movimiento> movimientosNuevos) {
         movimientos = new ArrayList<>(movimientosNuevos);
+        Collections.sort(movimientos); // Ordenar los movimientos por fecha descendente
         Log.d("MovimientoAdapter", "Nuevos movimientos: " + movimientos.size());
 
         notifyDataSetChanged();
     }
+
     public void updateCuentas(List<Cuenta> cuentasNuevas) {
         cuentas = new ArrayList<>(cuentasNuevas);
         Log.d("MovimientoAdapter", "Nuevas cuentas: " + cuentas.size());
@@ -142,5 +142,4 @@ public class MovimientoAdapter extends RecyclerView.Adapter<MovimientoAdapter.Mo
     public int getItemCount() {
         return movimientos.size();
     }
-
 }

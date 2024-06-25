@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey;
 
 import java.util.Comparator;
 @Entity(tableName = "movimientos")
-public class Movimiento {
+public class Movimiento implements Comparable<Movimiento>{
 
     @PrimaryKey(autoGenerate = true)
     private int id;
@@ -28,7 +28,10 @@ public class Movimiento {
     private int cuentaDestId;
     public String userId;
 
-
+    @Override
+    public int compareTo(Movimiento o) {
+        return o.getFecha().compareTo(this.getFecha()); // Orden descendente por fecha
+    }
     public Movimiento(int id, String descripcion, double monto, String fecha, String tipo, int cuentaId, int categoriaId, int cuentaDestId, String userId, boolean isSynced) {
         this.id = id;
         this.descripcion = descripcion;

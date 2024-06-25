@@ -99,7 +99,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"
-            android:backgroundTint="@color/colorFondo"
+            android:backgroundTint="@color/botonSecundario"
             android:text="VER CATEGORIAS"
             android:textAllCaps="true" />
 
@@ -108,7 +108,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="VER MOVIMIENTOS"
-            android:backgroundTint="@color/botonSecundario"
+            android:backgroundTint="@color/botonSecundario2"
             android:textAllCaps="true"
             android:layout_marginStart="16dp"
             android:layout_marginTop="8dp"

@@ -101,6 +101,16 @@
                 android:layout_alignParentBottom="true">
 
                 <ImageButton
+                    android:id="@+id/btn_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_menu2"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Ver inicio" />
+
+
+                <ImageButton
                     android:id="@+id/btn_ver_cuentas"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -118,6 +128,14 @@
                     android:background="@android:color/transparent"
                     android:contentDescription="Ver Movimientos" />
 
+                <ImageButton
+                    android:id="@+id/btn_ver_categorias"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_cat"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Ver Categorias" />
 
 
                 <ImageButton

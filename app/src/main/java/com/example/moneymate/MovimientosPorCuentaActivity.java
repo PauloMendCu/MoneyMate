@@ -108,6 +108,21 @@ public class MovimientosPorCuentaActivity extends AppCompatActivity {
             }
         });
 
+
+        // Botón para ver inicio
+        ImageButton btnInicio = findViewById(R.id.btn_menu);
+        btnInicio.setOnClickListener(view -> {
+            Intent intent = new Intent(MovimientosPorCuentaActivity.this, MainActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para ver categorias
+        ImageButton bntVerCategorias = findViewById(R.id.btn_ver_categorias);
+        bntVerCategorias.setOnClickListener(view -> {
+            Intent intent = new Intent(MovimientosPorCuentaActivity.this, CategoriaActivity.class);
+            startActivity(intent);
+        });
+
         // Botón para ver cuentas
         ImageButton btnVerCuentas = findViewById(R.id.btn_ver_cuentas);
         btnVerCuentas.setOnClickListener(new View.OnClickListener() {

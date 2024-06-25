@@ -69,11 +69,9 @@ public class MovimientosActivity extends AppCompatActivity {
 
         // Cargar datos locales y sincronizar
         cargarDatosLocales();
-        //actualizarMovimientos();
 
         // Sincronizar datos con el servidor
         sincronizarDatos();
-
     }
 
     private void inicializarComponentes() {
@@ -134,6 +132,21 @@ public class MovimientosActivity extends AppCompatActivity {
         ImageButton btnVerMovimientos = findViewById(R.id.btn_ver_movimientos);
         btnVerMovimientos.setOnClickListener(view -> {
             Intent intent = new Intent(MovimientosActivity.this, MovimientosActivity.class);
+            startActivity(intent);
+        });
+
+        // Botón para ver categorias
+        ImageButton bntVerCategorias = findViewById(R.id.btn_ver_categorias);
+        bntVerCategorias.setOnClickListener(view -> {
+            Intent intent = new Intent(MovimientosActivity.this, CategoriaActivity.class);
+            startActivity(intent);
+        });
+
+
+        // Botón para ver inicio
+        ImageButton btnInicio = findViewById(R.id.btn_menu);
+        btnInicio.setOnClickListener(view -> {
+            Intent intent = new Intent(MovimientosActivity.this, MainActivity.class);
             startActivity(intent);
         });
 
@@ -282,14 +295,6 @@ public class MovimientosActivity extends AppCompatActivity {
         });
     }
 
-
-    // Método para obtener movimientos por ID
-    private Movimiento getMovimientoById(int id) {
-        MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
-        return movimientoDao.getMovimientoById(id, userId);  // Aquí debes pasar el ID del usuario o algún valor adecuado
-    }
-
-    // Modificación en la sincronización
     private void sincronizarMovimientos() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         MovimientoDao movimientoDao = AppDatabase.getInstance(this).movimientoDao();
@@ -337,6 +342,12 @@ public class MovimientosActivity extends AppCompatActivity {
                                     movimientoDao.update(movimiento);
                                 }
                             }
+
+                            runOnUiThread(() -> {
+                                movimientosCompletos.clear();
+                                movimientosCompletos.addAll(movimientosServidor);
+                                filtrarMovimientos();
+                            });
                         });
                     }
                 }
@@ -348,9 +359,6 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         });
     }
-
-
-
 
     private void sincronizarCuentas() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -404,6 +412,12 @@ public class MovimientosActivity extends AppCompatActivity {
                                 }
                             }
 
+                            runOnUiThread(() -> {
+                                cuentas.clear();
+                                cuentas.addAll(cuentasServidor);
+                                adapter.notifyDataSetChanged();
+                            });
+
                             // Actualizar cuentas en el servidor como sincronizadas
                             for (Cuenta cuenta : cuentasServidor) {
                                 apiService.actualizarCuenta(cuenta.getId(), cuenta).enqueue(new Callback<Cuenta>() {
@@ -429,8 +443,6 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         });
     }
-
-
 
     private void actualizarMovimientos() {
         AppDatabase.getDatabaseWriteExecutor().execute(() -> {
@@ -482,8 +494,6 @@ public class MovimientosActivity extends AppCompatActivity {
             }
         });
     }
-
-
 
     private void actualizarTextoMesAno() {
         String[] nombresMeses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
