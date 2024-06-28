@@ -104,6 +104,7 @@
 
                         if (isNetworkAvailable()) {
                             // Registrar la categoría en la API y luego en la base de datos local
+                            categoria.setIsSynced(true);
                             syncService.agregarCategoriaEnApi(categoria, new SyncCallback() {
                                 @Override
                                 public void onSyncComplete() {
@@ -125,6 +126,7 @@
                             loadCategories();
                         }
                     }
+                    nombreCategoriaEditText.setText("");
                 }
             });
         }

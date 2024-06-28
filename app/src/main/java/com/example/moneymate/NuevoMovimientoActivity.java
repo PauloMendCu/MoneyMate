@@ -198,8 +198,10 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                     nuevoMovimiento.setCuentaDestId(((Cuenta) spinnerCuentaDestino.getSelectedItem()).getId());
                 }
                 if (isNetworkAvailable()) {
+                    nuevoMovimiento.setIsSynced(true);
                     registrarMovimientoEnApi(nuevoMovimiento);
                 } else {
+                    nuevoMovimiento.setIsSynced(false);
                     registrarMovimientoLocalmente(nuevoMovimiento);
                 }
             }
@@ -277,7 +279,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            cuentas = db.cuentaDao().getAllCuentas();
+            cuentas = db.cuentaDao().getAllByUser(userId);
             categorias = db.categoriaDao().getAllByUser(userId);
 
             // Eliminar duplicados si los hay
@@ -364,10 +366,9 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                                 startActivity(intent);
                             });
                         }
+                        finish();
                     } else {
-                        movimiento.setIsSynced(false);
-                        new InsertMovimientoAsyncTask(db).execute(movimiento);
-                        runOnUiThread(() -> Toast.makeText(NuevoMovimientoActivity.this, "Error al registrar en la API", Toast.LENGTH_SHORT).show());
+                        Toast.makeText(NuevoMovimientoActivity.this, "Error al registrar en la API", Toast.LENGTH_SHORT).show();
                     }
                 }
 
@@ -396,6 +397,7 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
                 // Redirigir a la vista deseada
                 Intent intent = new Intent(NuevoMovimientoActivity.this, CuentasActivity.class);
                 startActivity(intent);
+                finish();
             });
         }).start();
     }

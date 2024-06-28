@@ -148,6 +148,12 @@ public class NuevaCuentaActivity extends AppCompatActivity {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
+    // Cambia finish() en los métodos de guardar cuenta a esto:
+    private void finishActivityWithResult() {
+        Intent resultIntent = new Intent();
+        setResult(RESULT_OK, resultIntent);
+        finish();
+    }
 
     private void guardarCuentaEnServidor(Cuenta nuevaCuenta) {
         IFinanceService api = RetrofitClient.getInstance().create(IFinanceService.class);
@@ -167,7 +173,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
                         crearMovimientoSaldoInicial(cuentaCreada, true);
                     }
 
-                    finish(); // Cierra la actividad actual
+                    finishActivityWithResult(); // Cierra la actividad actual
                 } else {
                     Toast.makeText(NuevaCuentaActivity.this, "Error al crear la cuenta", Toast.LENGTH_SHORT).show();
                 }
@@ -178,6 +184,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
                 Toast.makeText(NuevaCuentaActivity.this, "No se pudo conectar al servidor. Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
                 nuevaCuenta.setIsSynced(false);
                 guardarCuentaLocalmente(nuevaCuenta);
+                finishActivityWithResult();
             }
         });
     }
@@ -197,7 +204,7 @@ public class NuevaCuentaActivity extends AppCompatActivity {
 
             runOnUiThread(() -> {
                 Toast.makeText(NuevaCuentaActivity.this, "Cuenta guardada localmente", Toast.LENGTH_SHORT).show();
-                finish(); // Cierra la actividad actual
+                finishActivityWithResult(); // Cierra la actividad actual
             });
         });
     }
