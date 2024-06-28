@@ -10,6 +10,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -87,7 +88,7 @@ public class CuentasActivity extends AppCompatActivity {
         Button btnAgregarCuenta = findViewById(R.id.btnAgregarCuenta);
         btnAgregarCuenta.setOnClickListener(v -> {
             Intent intent = new Intent(CuentasActivity.this, NuevaCuentaActivity.class);
-            startActivity(intent);
+            startActivityForResult(intent, 1); // Usa startActivityForResult
         });
 
         // Botón para ver cuentas
@@ -125,6 +126,16 @@ public class CuentasActivity extends AppCompatActivity {
 
         cargarDatosLocales();
         fetchResumen();
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            // Si una nueva cuenta fue agregada, recargar datos locales
+            cargarDatosLocales();
+        }
     }
 
     @Override

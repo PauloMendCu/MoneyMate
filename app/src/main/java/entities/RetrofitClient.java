@@ -8,8 +8,8 @@ import services.IFinanceService;
 public class RetrofitClient {
     private static Retrofit retrofit;
     private static Retrofit retrofitCategorias;
-    private static final String BASE_URL = "https://666d0dfd7a3738f7cacb54ac.mockapi.io";
-    private static final String BASE_URL_CATEGORIAS = "https://6675e742a8d2b4d072f1da92.mockapi.io";
+    private static final String BASE_URL = "https://6626e960b625bf088c06e458.mockapi.io";
+    private static final String BASE_URL_CATEGORIAS = "https://662da416a7dda1fa378afbe0.mockapi.io/";
 
     public static Retrofit getInstance() {
         if (retrofit == null) {

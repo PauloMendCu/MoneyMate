@@ -28,7 +28,7 @@ public class SyncService {
                 .allowMainThreadQueries()
                 .build();
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://6675e742a8d2b4d072f1da92.mockapi.io/")
+                .baseUrl("https://662da416a7dda1fa378afbe0.mockapi.io/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         categoriaService = retrofit.create(ICategoriaService.class);
