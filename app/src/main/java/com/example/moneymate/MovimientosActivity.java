@@ -262,8 +262,6 @@ public class MovimientosActivity extends AppCompatActivity {
                             }
 
                             runOnUiThread(() -> {
-                                categorias.clear();
-                                categorias.addAll(categoriasServidor);
                                 configurarSpinnerCategoria(); // Actualizar el spinner con las categorías sincronizadas
                             });
 
@@ -304,6 +302,7 @@ public class MovimientosActivity extends AppCompatActivity {
 
         if (!movimientosNoSincronizados.isEmpty()) {
             for (Movimiento movimiento : movimientosNoSincronizados) {
+                movimiento.setIsSynced(true);
                 apiService.agregarMovimiento(movimiento).enqueue(new Callback<Movimiento>() {
                     @Override
                     public void onResponse(Call<Movimiento> call, Response<Movimiento> response) {
@@ -344,8 +343,7 @@ public class MovimientosActivity extends AppCompatActivity {
                             }
 
                             runOnUiThread(() -> {
-                                movimientosCompletos.clear();
-                                movimientosCompletos.addAll(movimientosServidor);
+
                                 filtrarMovimientos();
                             });
                         });

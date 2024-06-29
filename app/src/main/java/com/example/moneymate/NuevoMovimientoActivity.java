@@ -215,8 +215,13 @@ public class NuevoMovimientoActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<List<Categoria>> call, Response<List<Categoria>> response) {
                 if (response.isSuccessful() && response.body() != null) {
+
                     List<Categoria> categorias = response.body();
-                    new InsertCategoriasAsyncTask(db, userId).execute(categorias.toArray(new Categoria[0]));
+                    for (Categoria categoria : categorias) {
+                        if (categoria.getUserId()== userId){
+                            new InsertCategoriasAsyncTask(db, userId).execute(categorias.toArray(new Categoria[0]));
+                        }
+                    }
                 }
             }
 
