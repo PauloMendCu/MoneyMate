@@ -48,7 +48,7 @@ public class CuentaAdapter extends RecyclerView.Adapter<CuentaAdapter.ViewHolder
 
         // Validar y mostrar el tipo de cuenta
         if (cuenta.getTipo() == 1) {
-            holder.tipo.setText("Cuenta Dédito");
+            holder.tipo.setText("Cuenta Débito");
             holder.tipo.setTextColor(0xFFFFA500);
             holder.saldo.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.black));
             holder.saldo.setText("Saldo: " + String.format("S/.%.2f", cuenta.getSaldo()));
@@ -58,7 +58,7 @@ public class CuentaAdapter extends RecyclerView.Adapter<CuentaAdapter.ViewHolder
             spannableString.setSpan(new ForegroundColorSpan(ContextCompat.getColor(holder.itemView.getContext(), R.color.verde)), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             holder.saldo.setText(spannableString);
         } else if (cuenta.getTipo() == 2) {
-            holder.tipo.setText("Cuenta Credito");
+            holder.tipo.setText("Cuenta Crédito");
             holder.tipo.setTextColor(0xFF0000FF);
             holder.saldo.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.black));
             holder.saldo.setText("Límite: " + String.format("S/.%.2f", cuenta.getSaldo()));

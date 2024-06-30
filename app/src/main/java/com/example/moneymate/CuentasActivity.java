@@ -284,7 +284,9 @@ public class CuentasActivity extends AppCompatActivity {
     private void actualizarSaldoTotal() {
         double saldoTotal = 0;
         for (Cuenta cuenta : cuentas) {
-            saldoTotal += cuenta.getSaldo();
+            if(cuenta.getTipo()==1) {
+                saldoTotal += cuenta.getSaldo();
+            }
         }
         tvSaldoTotalMonto.setText(String.format("S/.%.2f", saldoTotal));
     }
