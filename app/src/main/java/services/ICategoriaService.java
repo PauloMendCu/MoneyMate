@@ -20,10 +20,10 @@ public interface ICategoriaService {
     @PUT("/Categoria/{id}")
     Call<Categoria> actualizarCategoria(@Path("id") int categoriaId, @Body Categoria categoria);
 
-    @PUT("Categoria/{id}")
+    @PUT("/Categoria/{id}")
     Call<Categoria> updateCategoria(@Path("id") int id, @Body Categoria categoria);
 
-    @DELETE("Categoria/{id}")
+    @DELETE("/Categoria/{id}")
     Call<Void> deleteCategoria(@Path("id") int id);
 
 }
