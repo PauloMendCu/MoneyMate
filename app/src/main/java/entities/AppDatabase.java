@@ -16,7 +16,7 @@ import dao.CategoriaDao;
 import dao.CuentaDao;
 import dao.MovimientoDao;
 
-@Database(entities = {Cuenta.class, Movimiento.class, Categoria.class}, version = 3, exportSchema = false)
+@Database(entities = {Cuenta.class, Movimiento.class, Categoria.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static final int NUMBER_OF_THREADS = 4;
     private static volatile AppDatabase INSTANCE;
@@ -41,7 +41,7 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                                    AppDatabase.class, "app_database")
+                                    AppDatabase.class, "database-name")
                             .addCallback(sRoomDatabaseCallback)
                             .fallbackToDestructiveMigration()
                             .build();
